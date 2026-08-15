@@ -36,10 +36,12 @@ for (const summary of manifest.tracks) {
     assert(!/^(Basic|Intermediate|Advanced)(?: scenario| troubleshooting| design)?:/i.test(question.prompt), `${question.id} repeats its level in the prompt`);
     assert(Array.isArray(question.skillsTested) && question.skillsTested.length > 0, `${question.id} needs skillsTested`);
     const answer = question.answer;
-    assert(answer && typeof answer.modelAnswer === 'string' && answer.modelAnswer.length >= 300, `${question.id} needs a detailed model answer`);
-    assert(answer.modelAnswer.includes('**Direct answer'), `${question.id} needs a scannable direct answer`);
-    assert(answer.modelAnswer.includes('**How it works:**'), `${question.id} needs a mechanism explanation`);
+    assert(answer && typeof answer.modelAnswer === 'string' && answer.modelAnswer.length >= 400, `${question.id} needs a detailed candidate answer`);
+    assert(typeof answer.explanation === 'string' && answer.explanation.length >= 300, `${question.id} needs a detailed explanation`);
+    assert(answer.explanation.includes('**Why this answer is correct:**'), `${question.id} needs a correctness explanation`);
+    assert(answer.explanation.includes('**Evidence to ask for:**'), `${question.id} needs question-specific proof`);
     assert(!answer.modelAnswer.includes('answers should begin with the requirement'), `${question.id} still contains the retired generic template`);
+    assert(!answer.modelAnswer.includes('Use it when the mechanism matches the problem'), `${question.id} still contains generic filler`);
     assert(Array.isArray(answer.keyPoints) && answer.keyPoints.length >= 2, `${question.id} needs key points`);
     assert(typeof answer.realWorldExample === 'string' && answer.realWorldExample.length >= 30, `${question.id} needs a real-world example`);
     assert(Array.isArray(answer.commonMistakes) && answer.commonMistakes.length > 0, `${question.id} needs common mistakes`);

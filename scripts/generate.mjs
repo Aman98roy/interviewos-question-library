@@ -96,6 +96,33 @@ const codeExamples = {
   'system-design': ['text', 'POST /v1/notifications\nIdempotency-Key: <client-generated-id>\n\n202 Accepted\n{ "notificationId": "...", "status": "queued" }'],
   'distributed-systems': ['sql', 'BEGIN;\nINSERT INTO payment (id, status) VALUES ($1, \'captured\');\nINSERT INTO outbox (id, topic, payload) VALUES ($2, \'payment.captured\', $3);\nCOMMIT;'],
 };
+const codeExampleTopics = {
+  aws: 'VPC',
+  azure: 'Virtual Networks',
+  gcp: 'VPC',
+  'javascript-typescript': 'Type system',
+  python: 'Typing',
+  java: 'Collections',
+  csharp: 'LINQ',
+  go: 'Goroutines',
+  'web-fundamentals': 'Semantic HTML',
+  react: 'State management',
+  nextjs: 'Server Components',
+  angular: 'RxJS',
+  nodejs: 'Streams',
+  'spring-boot': 'REST APIs',
+  'aspnet-core': 'Web APIs',
+  'django-fastapi': 'Request validation',
+  'sql-postgresql': 'Indexes',
+  'mongodb-nosql': 'Indexes',
+  'redis-caching': 'Cache patterns',
+  'linux-networking': 'TCP and DNS',
+  docker: 'Images and layers',
+  kubernetes: 'Services and ingress',
+  'cicd-infrastructure': 'Terraform',
+  'system-design': 'APIs and boundaries',
+  'distributed-systems': 'Messaging',
+};
 
 await mkdir(resolve(root, 'tracks'), { recursive: true });
 assert(Object.keys(lessons).length === tracks.length, 'Every track needs a lesson bank');
@@ -122,7 +149,7 @@ function question(item, entry, level, index) {
   const { material, topicIndex, kind, focus } = entry;
   const topic = item.topics[topicIndex];
   const prompt = `${prompts(item, topic)[kind]} ${focus}`;
-  const modelAnswer = answer(item, material, topic, level, kind);
+  const { explanation, modelAnswer } = answer(item, material, topic, level, kind, focus);
   const result = {
     id: `${item.slug}-${level}-${String(index + 1).padStart(2, '0')}`,
     level,
@@ -131,6 +158,7 @@ function question(item, entry, level, index) {
     skillsTested: [topic, skillFor(kind), `${capitalize(level)} reasoning`],
     answer: {
       modelAnswer,
+      explanation,
       keyPoints: [
         `**Remember:** ${material.memory}`,
         firstSentence(material.teach),
@@ -144,7 +172,7 @@ function question(item, entry, level, index) {
     },
   };
 
-  if (kind === 'practical' && codeExamples[item.slug]) {
+  if (kind === 'practical' && codeExamples[item.slug] && codeExampleTopics[item.slug] === topic) {
     const [language, source] = codeExamples[item.slug];
     result.answer.code = { language, source };
   }
@@ -172,33 +200,42 @@ function prompts(item, topic) {
   };
 }
 
-function answer(item, material, topic, level, kind) {
-  const leads = {
-    conceptual: firstSentence(material.teach),
-    practical: `Start with the smallest implementation that preserves the contract. ${firstSentence(material.teach)}`,
-    scenario: `For ${item.example}, make the decision from workload and correctness needs. ${firstSentence(material.teach)}`,
-    troubleshooting: `Establish impact and compare healthy behavior before changing configuration. ${firstSentence(material.teach)}`,
-    design: `Treat ${topic} as an explicit, owned boundary. ${firstSentence(material.teach)}`,
-  };
+function answer(item, material, topic, level, kind, focus) {
   const depth = {
-    basic: `Use it when the mechanism matches the problem; avoid it when its main limit breaks correctness or makes the system harder to operate.`,
-    intermediate: `Production behavior matters as much as syntax. Explain ownership, invalid input, dependency failure, security, and the recovery path.`,
-    advanced: `The key trade-off is whether the guarantee justifies its coordination, latency, operational, security, and cost burden. Compare the simplest credible alternative and name the measured threshold that would trigger a redesign.`,
-    scenario: `State assumptions before choosing. Compare at least one credible alternative, describe overload and dependency failure, make permissions and data exposure explicit, and keep rollback possible.`,
+    basic: `The important beginner distinction is the behavior ${topic} guarantees and the limit described above; naming the feature alone is not enough.`,
+    intermediate: `I would also make ownership, invalid input, dependency failure, security, observability, and recovery explicit before calling this production-ready.`,
+    advanced: `At senior depth, I would quantify the relevant latency, scale, correctness, security, and cost limits, compare the simplest credible alternative, and name the measured threshold that would change the design.`,
+    scenario: `Because the scenario is incomplete, I would state my assumptions, compare one credible alternative, describe failure and rollback, and change the decision if the measured constraints differ.`,
   };
-  const mechanismDetail = withoutFirstSentence(material.teach) || `The important part is the behavior and guarantee ${topic} provides, not merely the feature name.`;
-  const verification = kind === 'troubleshooting'
-    ? `Reproduce or isolate one symptom, change one variable at a time, and confirm recovery with the same signal that proved the failure.`
-    : `Test the happy path, invalid input, overload, dependency failure, and recovery. Measure latency, errors, saturation, correctness, and cost where they apply.`;
+  const verification = verificationFor(kind, topic);
+  const responses = {
+    conceptual: `${material.teach}\n\nIn a production system, ${lowercaseFirst(material.operate)} ${depth[level]} For example, ${lowercaseFirst(material.example)} I would prove the explanation by ${lowercaseFirst(verification)}`,
+    practical: `I would implement ${topic} by starting with its narrowest correct production boundary. ${material.teach}\n\nThe concrete steps are to ${lowercaseFirst(material.operate)} For example, ${lowercaseFirst(material.example)} ${depth[level]} I would verify it by ${lowercaseFirst(verification)}`,
+    troubleshooting: `I would first confirm the impact and compare a failing request or instance with a healthy one. For ${topic}, the governing behavior is: ${material.teach}\n\nI would then ${lowercaseFirst(material.operate)} I would change one variable at a time, confirm recovery with the same evidence that exposed the failure, and prevent recurrence with a regression check and an alert on that signal. ${depth[level]}`,
+    scenario: `For ${item.example}, I would choose from the workload and correctness requirements, not from the service name. ${material.teach}\n\nMy production approach would be to ${lowercaseFirst(material.operate)} A concrete version is: ${material.example} I would reject a broader or more operationally expensive option unless a measured requirement justified it. ${depth[level]} I would prove the choice by ${lowercaseFirst(verification)}`,
+    design: `I would make ${topic} an explicit boundary with a clear owner, inputs, outputs, failure behavior, and recovery path. ${material.teach}\n\nFor ${item.example}, I would ${lowercaseFirst(material.operate)} ${material.example} ${depth[level]} I would document the rejected alternative and redesign only when measured behavior crosses the agreed correctness, latency, scale, security, or cost threshold.`,
+  };
 
-  return [
-    `🎯 **Direct answer — ${topic}:** ${leads[kind]}`,
-    `🧠 **How it works:** ${mechanismDetail}`,
-    `🛠️ **How to use it in a real system:** ${material.operate}`,
-    `⚖️ **When to use it—and when not to:** ${depth[level]}`,
-    `✅ **How to prove the answer:** ${verification}`,
-    `💡 **Memory hook:** “${material.memory}”`,
-  ].join('\n\n');
+  return {
+    modelAnswer: responses[kind],
+    explanation: [
+      `**Why this answer is correct:** ${material.teach}`,
+      `**How it applies in production:** ${material.operate}`,
+      `**What this question is testing:** ${focus}`,
+      `**Evidence to ask for:** ${verification}`,
+      `**Memory hook:** “${material.memory}”`,
+    ].join('\n\n'),
+  };
+}
+
+function verificationFor(kind, topic) {
+  return {
+    conceptual: `showing one expected ${topic} behavior and one boundary case, then connecting both to observable evidence`,
+    practical: `testing the intended result, rejected invalid or unauthorized input, one dependency failure, recovery, and the relevant logs or metrics`,
+    scenario: `checking the stated assumptions with representative load, failure injection, security review, recovery rehearsal, and cost measurement`,
+    troubleshooting: `reproducing or isolating one symptom, narrowing it with ordered evidence, and confirming the fix with the original failing signal`,
+    design: `walking through success, invalid input, saturation, dependency failure, recovery, authorization, observability, and the stated SLO`,
+  }[kind];
 }
 
 function skillFor(kind) {
@@ -215,8 +252,8 @@ function firstSentence(value) {
   return value.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim() ?? value;
 }
 
-function withoutFirstSentence(value) {
-  return value.slice(firstSentence(value).length).trim();
+function lowercaseFirst(value) {
+  return `${value[0].toLowerCase()}${value.slice(1)}`;
 }
 
 function capitalize(value) {
