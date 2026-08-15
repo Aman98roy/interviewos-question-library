@@ -70,9 +70,7 @@ const levelBlueprints = {
   ],
 };
 const codeExamples = {
-  aws: ['hcl', 'resource "aws_security_group_rule" "https" {\n  type              = "ingress"\n  from_port         = 443\n  to_port           = 443\n  protocol          = "tcp"\n  security_group_id = aws_security_group.app.id\n  source_security_group_id = aws_security_group.lb.id\n}'],
   azure: ['bicep', 'resource subnet \'Microsoft.Network/virtualNetworks/subnets@2023-09-01\' = {\n  name: \'app\'\n  properties: {\n    addressPrefix: \'10.0.1.0/24\'\n    networkSecurityGroup: { id: nsg.id }\n  }\n}'],
-  gcp: ['hcl', 'resource "google_compute_firewall" "allow_lb" {\n  name    = "allow-lb-to-app"\n  network = google_compute_network.main.name\n  source_ranges = ["35.191.0.0/16", "130.211.0.0/22"]\n  allow { protocol = "tcp" ports = ["8080"] }\n}'],
   'javascript-typescript': ['typescript', 'const User = z.object({ id: z.string().uuid(), name: z.string().min(1) });\ntype User = z.infer<typeof User>;\nconst user = User.parse(await response.json());'],
   python: ['python', 'class UserReader(Protocol):\n    def get(self, user_id: UUID) -> User | None: ...\n\ndef find_user(reader: UserReader, user_id: UUID) -> User:\n    user = reader.get(user_id)\n    if user is None:\n        raise UserNotFound(user_id)\n    return user'],
   java: ['java', 'Map<String, Integer> totals = new HashMap<>();\nfor (Order order : orders) {\n    totals.merge(order.customerId(), order.amount(), Integer::sum);\n}'],
@@ -97,9 +95,7 @@ const codeExamples = {
   'distributed-systems': ['sql', 'BEGIN;\nINSERT INTO payment (id, status) VALUES ($1, \'captured\');\nINSERT INTO outbox (id, topic, payload) VALUES ($2, \'payment.captured\', $3);\nCOMMIT;'],
 };
 const codeExampleTopics = {
-  aws: 'VPC',
   azure: 'Virtual Networks',
-  gcp: 'VPC',
   'javascript-typescript': 'Type system',
   python: 'Typing',
   java: 'Collections',
@@ -202,17 +198,20 @@ function prompts(item, topic) {
 
 function answer(item, material, topic, level, kind, focus) {
   const depth = {
-    basic: `The important beginner distinction is the behavior ${topic} guarantees and the limit described above; naming the feature alone is not enough.`,
+    basic: `The important beginner distinction is the guarantees and limits described above for ${topic}; naming the feature alone is not enough.`,
     intermediate: `I would also make ownership, invalid input, dependency failure, security, observability, and recovery explicit before calling this production-ready.`,
     advanced: `At senior depth, I would quantify the relevant latency, scale, correctness, security, and cost limits, compare the simplest credible alternative, and name the measured threshold that would change the design.`,
     scenario: `Because the scenario is incomplete, I would state my assumptions, compare one credible alternative, describe failure and rollback, and change the decision if the measured constraints differ.`,
   };
   const verification = verificationFor(kind, topic);
+  const conceptualResponse = focus.startsWith('Teach the trade-off')
+    ? `A useful counterexample is a team claiming to use ${topic} correctly without being able to explain or verify its guarantees. ${material.teach}\n\nThe design is credible only when the team can ${lowercaseFirst(material.operate)} ${material.example} I would change the decision when measured correctness, latency, scale, security, cost, or recovery requirements exceed those guarantees. ${depth[level]}`
+    : `${material.teach}\n\nIn a production system, ${lowercaseFirst(material.operate)} ${depth[level]} For example, ${lowercaseFirst(material.example)} I would prove the explanation by ${lowercaseFirst(verification)}.`;
   const responses = {
-    conceptual: `${material.teach}\n\nIn a production system, ${lowercaseFirst(material.operate)} ${depth[level]} For example, ${lowercaseFirst(material.example)} I would prove the explanation by ${lowercaseFirst(verification)}`,
-    practical: `I would implement ${topic} by starting with its narrowest correct production boundary. ${material.teach}\n\nThe concrete steps are to ${lowercaseFirst(material.operate)} For example, ${lowercaseFirst(material.example)} ${depth[level]} I would verify it by ${lowercaseFirst(verification)}`,
+    conceptual: conceptualResponse,
+    practical: `I would implement ${topic} by starting with its narrowest correct production boundary. ${material.teach}\n\nThe concrete steps are to ${lowercaseFirst(material.operate)} For example, ${lowercaseFirst(material.example)} ${depth[level]} I would verify it by ${lowercaseFirst(verification)}.`,
     troubleshooting: `I would first confirm the impact and compare a failing request or instance with a healthy one. For ${topic}, the governing behavior is: ${material.teach}\n\nI would then ${lowercaseFirst(material.operate)} I would change one variable at a time, confirm recovery with the same evidence that exposed the failure, and prevent recurrence with a regression check and an alert on that signal. ${depth[level]}`,
-    scenario: `For ${item.example}, I would choose from the workload and correctness requirements, not from the service name. ${material.teach}\n\nMy production approach would be to ${lowercaseFirst(material.operate)} A concrete version is: ${material.example} I would reject a broader or more operationally expensive option unless a measured requirement justified it. ${depth[level]} I would prove the choice by ${lowercaseFirst(verification)}`,
+    scenario: `For ${item.example}, I would choose from the workload and correctness requirements, not from the service name. ${material.teach}\n\nMy production approach would be to ${lowercaseFirst(material.operate)} A concrete version is: ${material.example} I would reject a broader or more operationally expensive option unless a measured requirement justified it. ${depth[level]} I would prove the choice by ${lowercaseFirst(verification)}.`,
     design: `I would make ${topic} an explicit boundary with a clear owner, inputs, outputs, failure behavior, and recovery path. ${material.teach}\n\nFor ${item.example}, I would ${lowercaseFirst(material.operate)} ${material.example} ${depth[level]} I would document the rejected alternative and redesign only when measured behavior crosses the agreed correctness, latency, scale, security, or cost threshold.`,
   };
 

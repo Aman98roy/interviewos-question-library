@@ -24,6 +24,7 @@ for (const summary of manifest.tracks) {
   assert(Array.isArray(track.questions) && track.questions.length === 80, `${summary.slug} must contain 80 questions`);
   unique(track.questions.map((question) => required(question.id, `${summary.slug} question id`)), `${summary.slug} question IDs`);
   unique(track.questions.map((question) => question.prompt), `${summary.slug} question prompts`);
+  unique(track.questions.map((question) => question.answer.modelAnswer), `${summary.slug} candidate answers`);
   for (const [level, count] of Object.entries(levelCounts)) {
     const questions = track.questions.filter((question) => question.level === level);
     assert(questions.length === count, `${summary.slug} must contain ${count} ${level} questions`);
@@ -45,6 +46,7 @@ for (const summary of manifest.tracks) {
     assert(Array.isArray(answer.keyPoints) && answer.keyPoints.length >= 2, `${question.id} needs key points`);
     assert(typeof answer.realWorldExample === 'string' && answer.realWorldExample.length >= 30, `${question.id} needs a real-world example`);
     assert(Array.isArray(answer.commonMistakes) && answer.commonMistakes.length > 0, `${question.id} needs common mistakes`);
+    if (answer.code?.language === 'hcl') assert(question.prompt.includes('Terraform'), `${question.id} includes Terraform even though the question does not ask for it`);
     if (question.kind === 'scenario' || question.kind === 'design') assert(answer.flow, `${question.id} needs a decision flow`);
     if (answer.flow) assert(Array.isArray(answer.flow.steps) && answer.flow.steps.length >= 2 && answer.flow.steps.length <= 8, `${question.id} flow must have 2-8 steps`);
   }
