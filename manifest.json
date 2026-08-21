@@ -35,6 +35,11 @@
       "slug": "architecture",
       "title": "Architecture",
       "description": "System decomposition, distributed trade-offs, security, resilience, and scale."
+    },
+    {
+      "slug": "career",
+      "title": "Career & Behavioral",
+      "description": "Behavioral stories, HR conversations, workplace judgment, communication, and time management."
     }
   ],
   "tracks": [
@@ -412,6 +417,21 @@
       ],
       "questionCount": 80,
       "file": "tracks/distributed-systems.json"
+    },
+    {
+      "slug": "behavioral-hr",
+      "title": "Behavioral, HR & Time Management",
+      "category": "career",
+      "summary": "Practice credible workplace stories, HR conversations, collaboration, growth, and prioritization answers.",
+      "topics": [
+        "Behavioral storytelling",
+        "Motivation and career fit",
+        "Strengths, weaknesses and growth",
+        "Teamwork, conflict and feedback",
+        "Time management and prioritization"
+      ],
+      "questionCount": 80,
+      "file": "tracks/behavioral-hr.json"
     }
   ]
 }

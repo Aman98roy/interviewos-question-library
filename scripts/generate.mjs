@@ -13,6 +13,7 @@ const categories = [
   ['data', 'Data', 'Data modeling, queries, consistency, caching, scale, and operational safety.'],
   ['devops', 'DevOps', 'Delivery automation, containers, infrastructure, networking, and reliable operations.'],
   ['architecture', 'Architecture', 'System decomposition, distributed trade-offs, security, resilience, and scale.'],
+  ['career', 'Career & Behavioral', 'Behavioral stories, HR conversations, workplace judgment, communication, and time management.'],
 ].map(([slug, title, description]) => ({ slug, title, description }));
 
 const tracks = [
@@ -41,6 +42,7 @@ const tracks = [
   track('cicd-infrastructure', 'CI/CD & Infrastructure as Code', 'devops', 'Design repeatable delivery and infrastructure workflows with review, testing, rollback, and drift control.', ['Pipeline design', 'Terraform', 'Secrets', 'Deployment strategies', 'Observability'], 'a team releasing several services multiple times each day'),
   track('system-design', 'System Design', 'architecture', 'Translate product requirements into scalable services, data flows, interfaces, and operational controls.', ['Requirements', 'APIs and boundaries', 'Data architecture', 'Scale', 'Trade-offs'], 'a globally used notification and activity platform'),
   track('distributed-systems', 'Distributed Systems, Reliability & Security', 'architecture', 'Reason about partial failure, consistency, resilience, observability, and security boundaries.', ['Consistency', 'Messaging', 'Resilience', 'Observability', 'Threat modeling'], 'a financial workflow spanning independently deployed services'),
+  track('behavioral-hr', 'Behavioral, HR & Time Management', 'career', 'Practice credible workplace stories, HR conversations, collaboration, growth, and prioritization answers.', ['Behavioral storytelling', 'Motivation and career fit', 'Strengths, weaknesses and growth', 'Teamwork, conflict and feedback', 'Time management and prioritization'], 'a candidate interviewing for a cross-functional product engineering role'),
 ];
 
 const levelBlueprints = {
@@ -67,6 +69,32 @@ const levelBlueprints = {
     ['scenario', 'Make and defend a real production decision with incomplete information.'],
     ['troubleshooting', 'Lead an incident response from symptoms to evidence, mitigation, and prevention.'],
     ['design', 'Whiteboard the end-to-end design, failure paths, security controls, cost, and rollback.'],
+  ],
+};
+const careerLevelBlueprints = {
+  basic: [
+    ['conceptual', 'Explain what a clear, honest answer should contain and one common mistake.'],
+    ['practical', 'Give a concise answer with one specific action and result.'],
+    ['troubleshooting', 'Recognize a vague or unfocused answer and improve it safely.'],
+  ],
+  intermediate: [
+    ['conceptual', 'Connect the answer structure to evidence, self-awareness, and role relevance.'],
+    ['practical', 'Answer with context, personal actions, trade-offs, outcome, and reflection.'],
+    ['troubleshooting', 'Diagnose why an honest answer is not convincing and revise it without inventing details.'],
+    ['design', 'Build a reusable answer structure and explain when to adapt it.'],
+  ],
+  advanced: [
+    ['conceptual', 'Explain what senior interviewers infer from the answer and the subtle warning signs they notice.'],
+    ['practical', 'Answer a high-stakes version with ambiguity, competing priorities, and measurable impact.'],
+    ['scenario', 'Choose and defend a response when people, delivery, and business needs conflict.'],
+    ['troubleshooting', 'Repair an answer after probing reveals missing ownership, evidence, or reflection.'],
+    ['design', 'Create an answer framework that stays concise under follow-up questions and uncertainty.'],
+    ['conceptual', 'Challenge a weak answer with a counterexample and explain what would make the evidence stronger.'],
+  ],
+  scenario: [
+    ['scenario', 'Respond to a realistic workplace situation with incomplete information and clear trade-offs.'],
+    ['troubleshooting', 'Recover when the interviewer challenges the example, outcome, or personal contribution.'],
+    ['design', 'Structure the full response, likely follow-ups, evidence, learning, and what you would do differently.'],
   ],
 };
 const codeExamples = {
@@ -131,7 +159,14 @@ await writeJson('manifest.json', {
 });
 
 for (const item of tracks) {
-  const questions = Object.entries(levelBlueprints).flatMap(([level, blueprints]) => lessons[item.slug].flatMap((material, topicIndex) => blueprints.map(([kind, focus], round) => ({ material, topicIndex, kind, focus, round }))).map((entry, index) => question(item, entry, level, index)));
+  const blueprints = item.category === 'career' ? careerLevelBlueprints : levelBlueprints;
+  const questions = Object.entries(blueprints).flatMap(([level, levelItems]) => {
+    const entries = lessons[item.slug].flatMap((material, topicIndex) => levelItems.map(([kind, focus], round) => ({ material, topicIndex, kind, focus, round })));
+    return entries
+      .map((entry, index) => ({ entry, question: question(item, entry, level, index) }))
+      .sort((a, b) => a.entry.round - b.entry.round || a.entry.topicIndex - b.entry.topicIndex)
+      .map(({ question: itemQuestion }) => itemQuestion);
+  });
   await writeJson(`tracks/${item.slug}.json`, { schemaVersion: 1, slug: item.slug, questions });
 }
 
@@ -144,14 +179,14 @@ function track(slug, title, category, summary, topics, example) {
 function question(item, entry, level, index) {
   const { material, topicIndex, kind, focus } = entry;
   const topic = item.topics[topicIndex];
-  const prompt = `${prompts(item, topic)[kind]} ${focus}`;
+  const prompt = promptFor(item, material, topic, kind, focus);
   const { explanation, modelAnswer } = answer(item, material, topic, level, kind, focus);
   const result = {
     id: `${item.slug}-${level}-${String(index + 1).padStart(2, '0')}`,
     level,
     kind,
     prompt,
-    skillsTested: [topic, skillFor(kind), `${capitalize(level)} reasoning`],
+    skillsTested: [topic, item.category === 'career' ? careerSkillFor(kind) : skillFor(kind), `${capitalize(level)} reasoning`],
     answer: {
       modelAnswer,
       explanation,
@@ -160,11 +195,12 @@ function question(item, entry, level, index) {
         firstSentence(material.teach),
         firstSentence(material.operate),
       ],
-      realWorldExample: `🏭 **In production:** ${material.example}\n\n✅ **Why this is a strong answer:** It connects ${topic} to a concrete outcome and explains what the team would observe to confirm the decision works safely.`,
-      commonMistakes: [
-        `Naming ${topic} without explaining its mechanism, ownership, or limit.`,
-        'Describing only success and omitting failure behavior, security, observability, or recovery.',
-      ],
+      realWorldExample: item.category === 'career'
+        ? `🎤 **In an interview:** ${material.example}\n\n✅ **Why this is a strong answer:** It makes ${topic} specific, credible, and easy to probe without inventing details.`
+        : `🏭 **In production:** ${material.example}\n\n✅ **Why this is a strong answer:** It connects ${topic} to a concrete outcome and explains what the team would observe to confirm the decision works safely.`,
+      commonMistakes: item.category === 'career'
+        ? [`Making broad claims about ${topic} without a specific personal example.`, 'Hiding the trade-off, overstating personal credit, blaming others, or skipping the result and learning.']
+        : [`Naming ${topic} without explaining its mechanism, ownership, or limit.`, 'Describing only success and omitting failure behavior, security, observability, or recovery.'],
     },
   };
 
@@ -173,7 +209,15 @@ function question(item, entry, level, index) {
     result.answer.code = { language, source };
   }
   if (kind === 'scenario' || kind === 'design') {
-    result.answer.flow = {
+    result.answer.flow = item.category === 'career' ? {
+      title: `${topic}: evidence-to-reflection flow`,
+      steps: [
+        { label: 'Clarify', detail: 'Identify what the interviewer is testing and choose one honest, relevant example.' },
+        { label: 'Structure', detail: 'Keep context brief, state your responsibility, and spend most of the answer on your actions.' },
+        { label: 'Evidence', detail: 'Name the decision, trade-off, collaboration, and measurable or observable outcome.' },
+        { label: 'Reflect', detail: 'Explain what you learned, what you would change, and answer follow-ups consistently.' },
+      ],
+    } : {
       title: `${topic}: requirement-to-proof flow`,
       steps: [
         { label: 'Clarify', detail: `${item.example}: state workload, correctness, security, scale, and recovery requirements.` },
@@ -186,44 +230,155 @@ function question(item, entry, level, index) {
   return result;
 }
 
-function prompts(item, topic) {
-  return {
-    conceptual: `Explain ${topic} in ${item.title} to an engineer who must use it tomorrow.`,
-    practical: `Implement a production-safe ${topic} solution with ${item.title}. Show the smallest useful example and explain how you would test it.`,
-    scenario: `${capitalize(item.example)} needs a decision about ${topic}. What would you choose, what would you reject, and why?`,
-    troubleshooting: `${capitalize(item.example)} has an intermittent ${topic} problem. Which evidence do you collect first, how do you narrow the cause, and how do you prevent recurrence?`,
-    design: `Design the ${topic} boundary for ${item.example}. Cover data flow, failure, security, observability, cost, and the condition that would make you redesign it.`,
+function promptFor(item, material, topic, kind, focus) {
+  const prompts = item.category === 'career' ? {
+    conceptual: `What makes an interview answer about ${topic} clear, credible, and easy to verify? Use this example as a reference: ${material.example}`,
+    practical: `Give a candidate-ready answer about ${topic} using this honest example: ${material.example}`,
+    scenario: `${capitalize(item.example)} faces a difficult question about ${topic}. Use this situation as evidence: ${material.example} How should the candidate respond?`,
+    troubleshooting: `A candidate gives this ${topic} example, but it sounds vague under follow-up questions: ${material.example} How should they improve it without inventing details?`,
+    design: `How should a candidate structure a concise, credible answer about ${topic}? Use this example to show the structure: ${material.example}`,
+  } : {
+    conceptual: `What is ${topic} in ${item.title}, how does it work, and why does it matter? Use this production case in your explanation: ${material.example}`,
+    practical: `How would you use ${item.title} to achieve the ${topic} outcome below for ${item.example}? Target outcome: ${material.example}`,
+    scenario: `Review this ${item.title} proposal for ${item.example}: ${material.example} Focusing on ${topic}, would you approve it, change it, or reject it?`,
+    troubleshooting: `In ${item.example}, this expected outcome fails intermittently in production: ${material.example} Focusing on ${topic}, how would you investigate without guessing?`,
+    design: `For ${item.example}, how would you design the part of the system concerned with ${topic} using ${item.title}? The target outcome is: ${material.example}`,
   };
+  return `${prompts[kind]} Your answer should ${lowercaseFirst(focus)}`;
 }
 
 function answer(item, material, topic, level, kind, focus) {
+  if (item.category === 'career') return careerAnswer(item, material, topic, level, kind, focus);
   const depth = {
-    basic: `The important beginner distinction is the guarantees and limits described above for ${topic}; naming the feature alone is not enough.`,
-    intermediate: `I would also make ownership, invalid input, dependency failure, security, observability, and recovery explicit before calling this production-ready.`,
-    advanced: `At senior depth, I would quantify the relevant latency, scale, correctness, security, and cost limits, compare the simplest credible alternative, and name the measured threshold that would change the design.`,
-    scenario: `Because the scenario is incomplete, I would state my assumptions, compare one credible alternative, describe failure and rollback, and change the decision if the measured constraints differ.`,
+    basic: `My rule of thumb is “${material.memory}” I would explain one limit instead of only naming ${topic}.`,
+    intermediate: 'Before shipping, I would make ownership, invalid input, dependency failure, security, observability, and recovery explicit.',
+    advanced: 'I would quantify latency, scale, correctness, security, and cost limits, compare the simplest credible alternative, and name the measured threshold that would change this design.',
+    scenario: 'I am assuming the stated workload fits current limits, the required correctness and security guarantees match the mechanism, and rollback is available. If measurements disprove an assumption, I would choose the simplest credible alternative and retest.',
   };
   const verification = verificationFor(kind, topic);
   const conceptualResponse = focus.startsWith('Teach the trade-off')
-    ? `A useful counterexample is a team claiming to use ${topic} correctly without being able to explain or verify its guarantees. ${material.teach}\n\nThe design is credible only when the team can ${lowercaseFirst(material.operate)} ${material.example} I would change the decision when measured correctness, latency, scale, security, cost, or recovery requirements exceed those guarantees. ${depth[level]}`
-    : `${material.teach}\n\nIn a production system, ${lowercaseFirst(material.operate)} ${depth[level]} For example, ${lowercaseFirst(material.example)} I would prove the explanation by ${lowercaseFirst(verification)}.`;
+    ? sections([
+      ['Direct answer', material.teach],
+      ['Counterexample', `A team does not understand ${topic} if it cannot explain or verify those guarantees.`],
+      ['Production use', material.operate],
+      ['Concrete example', material.example],
+      ['Decision limit', depth[level]],
+    ])
+    : sections([
+      ['Direct answer', material.teach],
+      ['Production use', material.operate],
+      ['Concrete example', material.example],
+      ['How to verify it', capitalize(verification)],
+      ['Trade-off and limit', depth[level]],
+    ]);
   const responses = {
     conceptual: conceptualResponse,
-    practical: `I would implement ${topic} by starting with its narrowest correct production boundary. ${material.teach}\n\nThe concrete steps are to ${lowercaseFirst(material.operate)} For example, ${lowercaseFirst(material.example)} ${depth[level]} I would verify it by ${lowercaseFirst(verification)}.`,
-    troubleshooting: `I would first confirm the impact and compare a failing request or instance with a healthy one. For ${topic}, the governing behavior is: ${material.teach}\n\nI would then ${lowercaseFirst(material.operate)} I would change one variable at a time, confirm recovery with the same evidence that exposed the failure, and prevent recurrence with a regression check and an alert on that signal. ${depth[level]}`,
-    scenario: `For ${item.example}, I would choose from the workload and correctness requirements, not from the service name. ${material.teach}\n\nMy production approach would be to ${lowercaseFirst(material.operate)} A concrete version is: ${material.example} I would reject a broader or more operationally expensive option unless a measured requirement justified it. ${depth[level]} I would prove the choice by ${lowercaseFirst(verification)}.`,
-    design: `I would make ${topic} an explicit boundary with a clear owner, inputs, outputs, failure behavior, and recovery path. ${material.teach}\n\nFor ${item.example}, I would ${lowercaseFirst(material.operate)} ${material.example} ${depth[level]} I would document the rejected alternative and redesign only when measured behavior crosses the agreed correctness, latency, scale, security, or cost threshold.`,
+    practical: sections([
+      ['Recommended approach', material.teach],
+      ['Implementation', material.operate],
+      ['Concrete example', material.example],
+      ['How to test it', capitalize(verification)],
+      ['Trade-off and limit', depth[level]],
+    ]),
+    troubleshooting: sections([
+      ['Expected behavior', material.teach],
+      ['Evidence first', 'Confirm user impact and timeline, then compare one failing request or instance with a healthy one.'],
+      ['Narrow the cause', `I would ${lowercaseFirst(material.operate)}`],
+      ['Confirm and prevent', `Change one variable at a time. ${capitalize(verification)}. Add a regression check and alert on the signal that exposed the failure.`],
+      ['Trade-off and limit', depth[level]],
+    ]),
+    scenario: sections([
+      ['Recommendation', `I would approve this direction, subject to the assumptions below. ${material.teach}`],
+      ['Production approach', `I would ${lowercaseFirst(material.operate)}`],
+      ['Concrete example', material.example],
+      ['Alternative and proof', `I would reject a broader or more expensive option unless a measured requirement justifies it. I would prove this choice by ${lowercaseFirst(verification)}.`],
+      ['Assumptions and rollback', depth[level]],
+    ]),
+    design: sections([
+      ['Boundary', `I would give ${topic} a clear owner, inputs, outputs, failure behavior, and recovery path. ${material.teach}`],
+      ['Production controls', `I would ${lowercaseFirst(material.operate)}`],
+      ['Concrete example', material.example],
+      ['How to prove it', capitalize(verification)],
+      ['Trade-off and redesign point', depth[level]],
+    ]),
   };
 
   return {
     modelAnswer: responses[kind],
-    explanation: [
-      `**Why this answer is correct:** ${material.teach}`,
-      `**How it applies in production:** ${material.operate}`,
-      `**What this question is testing:** ${focus}`,
-      `**Evidence to ask for:** ${verification}`,
-      `**Memory hook:** “${material.memory}”`,
-    ].join('\n\n'),
+    explanation: sections([
+      ['Why this answer is correct', material.teach],
+      ['In plain language', material.memory],
+      ['How it applies in production', material.operate],
+      ['Evidence to ask for', capitalize(verification)],
+      ['What a complete answer includes', focus],
+    ]),
+  };
+}
+
+function careerAnswer(item, material, topic, level, kind, focus) {
+  const depth = {
+    basic: 'I would keep the response concise, truthful, and centered on one personal action rather than a list of traits.',
+    intermediate: 'I would make the decision process, collaboration, outcome, and learning explicit so follow-up questions remain consistent.',
+    advanced: 'At senior depth, I would address ambiguity, competing interests, influence without authority, measurable impact, and what I would change now.',
+    scenario: 'Because details are incomplete, I would state assumptions, ask one useful clarifying question, explain the trade-off, and avoid pretending there was one perfect answer.',
+  };
+  const verification = careerVerificationFor(kind, topic);
+  const conceptualResponse = focus.startsWith('Challenge')
+    ? sections([
+      ['Weak answer', `A polished claim about ${topic} is weak when it cannot survive a specific follow-up question.`],
+      ['What a credible answer needs', material.teach],
+      ['How to strengthen it', material.operate],
+      ['Candidate-ready example', material.example],
+      ['What the interviewer verifies', capitalize(verification)],
+    ])
+    : sections([
+      ['Direct answer', material.teach],
+      ['How to deliver it', material.operate],
+      ['Candidate-ready example', material.example],
+      ['What the interviewer verifies', capitalize(verification)],
+      ['What I would emphasize', depth[level]],
+    ]);
+  const responses = {
+    conceptual: conceptualResponse,
+    practical: sections([
+      ['Candidate-ready answer', material.example],
+      ['Why it works', material.teach],
+      ['How to deliver it', material.operate],
+      ['What follow-up questions verify', capitalize(verification)],
+      ['What I would emphasize', depth[level]],
+    ]),
+    troubleshooting: sections([
+      ['Problem', `Do not invent detail. Find the missing context, responsibility, personal action, trade-off, result, or learning in the ${topic} answer.`],
+      ['What a credible answer needs', material.teach],
+      ['How to revise it', material.operate],
+      ['Candidate-ready example', material.example],
+      ['What I would emphasize', depth[level]],
+    ]),
+    scenario: sections([
+      ['Response', material.teach],
+      ['How to structure it', material.operate],
+      ['Candidate-ready example', material.example],
+      ['Trade-off and evidence', `Acknowledge the rejected option and explain what evidence drove the decision. ${capitalize(verification)}.`],
+      ['What I would emphasize', depth[level]],
+    ]),
+    design: sections([
+      ['Answer structure', `Use brief context, clear responsibility, specific personal actions, decision and trade-off, observable result, then reflection. ${material.teach}`],
+      ['How to apply it', material.operate],
+      ['Candidate-ready example', material.example],
+      ['How to adapt it', 'Treat the structure as a guide, not a script; shorten or expand it in response to follow-up questions.'],
+      ['What I would emphasize', depth[level]],
+    ]),
+  };
+
+  return {
+    modelAnswer: responses[kind],
+    explanation: sections([
+      ['Why this answer is credible', material.teach],
+      ['In plain language', material.memory],
+      ['How to deliver it', material.operate],
+      ['Evidence to listen for', capitalize(verification)],
+      ['What a complete answer includes', focus],
+    ]),
   };
 }
 
@@ -237,6 +392,16 @@ function verificationFor(kind, topic) {
   }[kind];
 }
 
+function careerVerificationFor(kind, topic) {
+  return {
+    conceptual: `a clear principle, one ${lowercaseFirst(topic)} example, an honest limit, and a reflection that survives follow-up questions`,
+    practical: 'specific personal actions, a visible decision or trade-off, an observable result, and consistency under probing',
+    scenario: 'stated assumptions, stakeholder awareness, a defensible choice, the rejected alternative, and learning',
+    troubleshooting: 'removing vague claims, separating personal and team contributions, adding evidence, and preserving honesty',
+    design: 'a concise context-action-result-reflection structure that adapts without becoming scripted',
+  }[kind];
+}
+
 function skillFor(kind) {
   return {
     conceptual: 'Concept explanation',
@@ -244,6 +409,16 @@ function skillFor(kind) {
     scenario: 'Scenario trade-offs',
     troubleshooting: 'Evidence-based diagnosis',
     design: 'System design',
+  }[kind];
+}
+
+function careerSkillFor(kind) {
+  return {
+    conceptual: 'Self-awareness and communication',
+    practical: 'Evidence-based storytelling',
+    scenario: 'Workplace judgment',
+    troubleshooting: 'Reflection and improvement',
+    design: 'Structured communication',
   }[kind];
 }
 
@@ -257,6 +432,10 @@ function lowercaseFirst(value) {
 
 function capitalize(value) {
   return `${value[0].toUpperCase()}${value.slice(1)}`;
+}
+
+function sections(items) {
+  return items.map(([heading, body]) => `**${heading}:** ${body}`).join('\n\n');
 }
 
 function assert(condition, message) {

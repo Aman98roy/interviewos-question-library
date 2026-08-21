@@ -8,7 +8,7 @@ const kinds = new Set(['conceptual', 'practical', 'troubleshooting', 'scenario',
 const manifest = await json('manifest.json');
 assert(manifest.schemaVersion === 1, 'Manifest schemaVersion must be 1');
 assert(Array.isArray(manifest.categories) && manifest.categories.length > 0, 'Manifest categories are required');
-assert(Array.isArray(manifest.tracks) && manifest.tracks.length === 25, 'Manifest must contain 25 tracks');
+assert(Array.isArray(manifest.tracks) && manifest.tracks.length === 26, 'Manifest must contain 26 tracks');
 
 const categoryIds = unique(manifest.categories.map((item) => required(item.slug, 'category slug')), 'category slugs');
 const trackIds = unique(manifest.tracks.map((item) => required(item.slug, 'track slug')), 'track slugs');
@@ -28,6 +28,7 @@ for (const summary of manifest.tracks) {
   for (const [level, count] of Object.entries(levelCounts)) {
     const questions = track.questions.filter((question) => question.level === level);
     assert(questions.length === count, `${summary.slug} must contain ${count} ${level} questions`);
+    assert(questions.slice(0, summary.topics.length).every((question, index) => question.skillsTested[0] === summary.topics[index]), `${summary.slug} ${level} questions must rotate through every topic before repeating one`);
   }
   for (const question of track.questions) {
     assert(!allQuestionIds.has(question.id), `Duplicate global question ID: ${question.id}`);
@@ -35,12 +36,16 @@ for (const summary of manifest.tracks) {
     assert(kinds.has(question.kind), `${question.id} has invalid kind`);
     assert(typeof question.prompt === 'string' && question.prompt.length >= 15, `${question.id} prompt is too short`);
     assert(!/^(Basic|Intermediate|Advanced)(?: scenario| troubleshooting| design)?:/i.test(question.prompt), `${question.id} repeats its level in the prompt`);
+    assert(question.prompt.includes('Your answer should '), `${question.id} does not state the expected answer depth`);
+    assert(!/Implement a production-safe|has an intermittent .+ problem|Show the smallest useful example.+Show the smallest correct use/i.test(question.prompt), `${question.id} contains a vague or repeated prompt template`);
     assert(Array.isArray(question.skillsTested) && question.skillsTested.length > 0, `${question.id} needs skillsTested`);
     const answer = question.answer;
     assert(answer && typeof answer.modelAnswer === 'string' && answer.modelAnswer.length >= 400, `${question.id} needs a detailed candidate answer`);
+    assert((answer.modelAnswer.match(/\*\*[^*]+:\*\*/g) ?? []).length >= 4, `${question.id} candidate answer must be easy to scan`);
     assert(typeof answer.explanation === 'string' && answer.explanation.length >= 300, `${question.id} needs a detailed explanation`);
-    assert(answer.explanation.includes('**Why this answer is correct:**'), `${question.id} needs a correctness explanation`);
-    assert(answer.explanation.includes('**Evidence to ask for:**'), `${question.id} needs question-specific proof`);
+    assert(answer.explanation.includes('**Why this answer is correct:**') || answer.explanation.includes('**Why this answer is credible:**'), `${question.id} needs a correctness explanation`);
+    assert(answer.explanation.includes('**In plain language:**'), `${question.id} needs a plain-language explanation`);
+    assert(answer.explanation.includes('**Evidence to ask for:**') || answer.explanation.includes('**Evidence to listen for:**'), `${question.id} needs question-specific proof`);
     assert(!answer.modelAnswer.includes('answers should begin with the requirement'), `${question.id} still contains the retired generic template`);
     assert(!answer.modelAnswer.includes('Use it when the mechanism matches the problem'), `${question.id} still contains generic filler`);
     assert(Array.isArray(answer.keyPoints) && answer.keyPoints.length >= 2, `${question.id} needs key points`);
@@ -52,8 +57,8 @@ for (const summary of manifest.tracks) {
   }
 }
 
-assert(trackIds.size === 25, 'Expected 25 unique tracks');
-assert(allQuestionIds.size === 2_000, 'Expected 2,000 unique questions');
+assert(trackIds.size === 26, 'Expected 26 unique tracks');
+assert(allQuestionIds.size === 2_080, 'Expected 2,080 unique questions');
 process.stdout.write(`${JSON.stringify({ valid: true, tracks: trackIds.size, questions: allQuestionIds.size })}\n`);
 
 async function json(path) {
