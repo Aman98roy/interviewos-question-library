@@ -242,10 +242,10 @@ function question(item, entry, level, index) {
 // One flowing first-person answer a candidate can say aloud, built from the same lesson material as the sectioned modelAnswer.
 function spokenAnswer(item, material, topic, kind, scenario) {
   if (item.category === 'career') {
-    return `In the interview I'd answer it like this: ${material.example} That works because ${lowercaseFirst(material.teach)} As I deliver it, ${lowercaseFirst(material.operate)} If they probe further, I'd stay specific and honest about what was mine versus the team's rather than inflating my part, and close with what I learned.`;
+    return `On **${topic}**, here's how I'd answer: ${material.example} That works because ${lowercaseFirst(material.teach)} As I deliver it, ${lowercaseFirst(material.operate)} If they probe further, I'd stay specific and honest about what was mine versus the team's rather than inflating my part, and close with **what I learned**.`;
   }
   const verify = verificationFor(kind, topic);
-  return `Here's how I'd say it in the interview: ${material.teach} In practice, I would ${lowercaseFirst(material.operate)} For a concrete case, on ${scenario}, ${lowercaseFirst(material.example)} I'd show it actually works by ${lowercaseFirst(verify)}, and the one limit I'd flag up front is captured by my rule of thumb: “${material.memory}”`;
+  return `Here's how I'd say it in the interview. **${topic}:** ${material.teach}\n\n**In practice**, I would ${lowercaseFirst(material.operate)}\n\n**For a concrete case**, on ${scenario}, ${lowercaseFirst(material.example)}\n\n**To prove it works**, I'd do this: ${lowercaseFirst(verify)}. And the one limit I'd flag up front is my rule of thumb: **${material.memory}**`;
 }
 
 function promptFor(item, material, topic, kind, focus, scenario) {
