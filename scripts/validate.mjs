@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const levelCounts = { basic: 15, intermediate: 20, advanced: 30, scenario: 15 };
+const levelCounts = { basic: 30, intermediate: 40, advanced: 60, scenario: 30 };
 const kinds = new Set(['conceptual', 'practical', 'troubleshooting', 'scenario', 'design']);
 const manifest = await json('manifest.json');
 assert(manifest.schemaVersion === 1, 'Manifest schemaVersion must be 1');
@@ -16,12 +16,12 @@ const allQuestionIds = new Set();
 
 for (const summary of manifest.tracks) {
   assert(categoryIds.has(summary.category), `${summary.slug} references an unknown category`);
-  assert(summary.questionCount === 80, `${summary.slug} questionCount must be 80`);
+  assert(summary.questionCount === 160, `${summary.slug} questionCount must be 160`);
   assert(new RegExp(`^tracks/${summary.slug}\\.json$`).test(summary.file), `${summary.slug} has an unsafe or mismatched file path`);
   assert(Array.isArray(summary.topics) && summary.topics.length >= 3, `${summary.slug} needs at least three topics`);
   const track = await json(summary.file);
   assert(track.schemaVersion === 1 && track.slug === summary.slug, `${summary.slug} track metadata does not match manifest`);
-  assert(Array.isArray(track.questions) && track.questions.length === 80, `${summary.slug} must contain 80 questions`);
+  assert(Array.isArray(track.questions) && track.questions.length === 160, `${summary.slug} must contain 160 questions`);
   unique(track.questions.map((question) => required(question.id, `${summary.slug} question id`)), `${summary.slug} question IDs`);
   unique(track.questions.map((question) => question.prompt), `${summary.slug} question prompts`);
   unique(track.questions.map((question) => question.answer.modelAnswer), `${summary.slug} candidate answers`);
@@ -58,7 +58,7 @@ for (const summary of manifest.tracks) {
 }
 
 assert(trackIds.size === 26, 'Expected 26 unique tracks');
-assert(allQuestionIds.size === 2_080, 'Expected 2,080 unique questions');
+assert(allQuestionIds.size === 4_160, 'Expected 4,160 unique questions');
 process.stdout.write(`${JSON.stringify({ valid: true, tracks: trackIds.size, questions: allQuestionIds.size })}\n`);
 
 async function json(path) {

@@ -5,10 +5,10 @@ Private content repository for the InterviewOS predefined technical, behavioral,
 ## Catalog
 
 - 25 engineering skill tracks plus 1 behavioral/HR track
-- 80 questions per track
-- Exactly 15 Basic, 20 Intermediate, 30 Advanced, and 15 Scenario questions
-- 2,080 questions total
-- 130 subject-specific lesson briefs covering technical mechanics, workplace evidence, limits, verification, real-world use, and a memory cue
+- 160 questions per track
+- Exactly 30 Basic, 40 Intermediate, 60 Advanced, and 30 Scenario questions
+- 4,160 questions total
+- 10 skills per track (260 subject-specific lesson briefs) covering technical mechanics, workplace evidence, limits, verification, real-world use, and a memory cue
 - Relevant code examples for every practical question and responsive decision flows for every scenario/design question
 
 ## Commands

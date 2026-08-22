@@ -53,9 +53,14 @@
         "VPC",
         "EC2 and Lambda",
         "S3",
-        "RDS and DynamoDB"
+        "RDS and DynamoDB",
+        "CloudFront and edge delivery",
+        "SQS and SNS",
+        "CloudWatch and observability",
+        "Auto Scaling and load balancing",
+        "Cost optimization"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/aws.json"
     },
     {
@@ -68,9 +73,14 @@
         "Virtual Networks",
         "App Service and Functions",
         "Azure Storage",
-        "Azure SQL and Cosmos DB"
+        "Azure SQL and Cosmos DB",
+        "Azure Monitor",
+        "Service Bus and messaging",
+        "AKS and containers",
+        "Key Vault and secrets",
+        "Cost management"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/azure.json"
     },
     {
@@ -83,9 +93,14 @@
         "VPC",
         "Cloud Run and GKE",
         "Cloud Storage",
-        "Cloud SQL and Spanner"
+        "Cloud SQL and Spanner",
+        "Pub/Sub",
+        "Cloud Monitoring",
+        "BigQuery",
+        "Secret Manager",
+        "Cost and billing"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/gcp.json"
     },
     {
@@ -98,9 +113,14 @@
         "Type system",
         "Promises",
         "Modules",
-        "Testing"
+        "Testing",
+        "Generics and advanced types",
+        "Error handling",
+        "Closures and memory",
+        "Performance profiling",
+        "Tooling and bundling"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/javascript-typescript.json"
     },
     {
@@ -113,9 +133,14 @@
         "Typing",
         "Async IO",
         "Packaging",
-        "Testing"
+        "Testing",
+        "Generators and iterators",
+        "Exceptions and error handling",
+        "Threads and processes",
+        "Performance and profiling",
+        "Standard library"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/python.json"
     },
     {
@@ -128,9 +153,14 @@
         "Collections",
         "Concurrency",
         "Streams",
-        "Testing"
+        "Testing",
+        "Generics",
+        "Exception handling",
+        "Records and sealed types",
+        "I/O and NIO",
+        "Build and dependencies"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/java.json"
     },
     {
@@ -143,9 +173,14 @@
         "LINQ",
         "Async and await",
         "Memory management",
-        "Testing"
+        "Testing",
+        "Generics and constraints",
+        "Exception handling",
+        "Collections",
+        "Nullable reference types",
+        "Dependency injection"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/csharp.json"
     },
     {
@@ -158,9 +193,14 @@
         "Channels",
         "Interfaces",
         "Context",
-        "Testing"
+        "Testing",
+        "Error handling",
+        "Generics",
+        "Slices and maps",
+        "Modules and dependencies",
+        "Profiling and performance"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/go.json"
     },
     {
@@ -173,9 +213,14 @@
         "CSS layout",
         "Accessibility",
         "HTTP and browsers",
-        "Core Web Vitals"
+        "Core Web Vitals",
+        "Forms and validation",
+        "Browser JavaScript",
+        "Web security",
+        "Caching and CDNs",
+        "Progressive enhancement"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/web-fundamentals.json"
     },
     {
@@ -188,9 +233,14 @@
         "State management",
         "Effects",
         "Accessibility",
-        "Performance"
+        "Performance",
+        "Hooks and custom hooks",
+        "Context and composition",
+        "Data fetching and Suspense",
+        "Forms and controlled inputs",
+        "Error boundaries"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/react.json"
     },
     {
@@ -203,9 +253,14 @@
         "App Router",
         "Caching",
         "Route Handlers",
-        "Performance"
+        "Performance",
+        "Server Actions",
+        "Data fetching and mutations",
+        "Authentication and middleware",
+        "Rendering strategies",
+        "Images and assets"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/nextjs.json"
     },
     {
@@ -218,9 +273,14 @@
         "Dependency injection",
         "RxJS",
         "Forms",
-        "Change detection"
+        "Change detection",
+        "Signals",
+        "Routing and guards",
+        "HTTP and interceptors",
+        "State management",
+        "Testing"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/angular.json"
     },
     {
@@ -233,9 +293,14 @@
         "Streams",
         "API design",
         "Security",
-        "Observability"
+        "Observability",
+        "Error handling",
+        "Modules and packages",
+        "Worker threads and clustering",
+        "Configuration and environments",
+        "Testing"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/nodejs.json"
     },
     {
@@ -248,9 +313,14 @@
         "REST APIs",
         "Transactions",
         "Spring Security",
-        "Observability"
+        "Observability",
+        "Configuration and profiles",
+        "Data access with JPA",
+        "Error handling",
+        "Caching",
+        "Testing"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/spring-boot.json"
     },
     {
@@ -263,9 +333,14 @@
         "Dependency injection",
         "Web APIs",
         "Entity Framework Core",
-        "Authentication"
+        "Authentication",
+        "Configuration and options",
+        "Error handling",
+        "Caching",
+        "Background services",
+        "Testing"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/aspnet-core.json"
     },
     {
@@ -278,9 +353,14 @@
         "ORM and data access",
         "Authentication",
         "Async boundaries",
-        "Testing"
+        "Testing",
+        "Migrations and schema",
+        "Caching",
+        "Background tasks",
+        "API design and versioning",
+        "Configuration and settings"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/django-fastapi.json"
     },
     {
@@ -293,9 +373,14 @@
         "Indexes",
         "Transactions",
         "Query plans",
-        "Concurrency"
+        "Concurrency",
+        "Joins and subqueries",
+        "Window functions",
+        "JSON and arrays",
+        "Partitioning",
+        "Backup and recovery"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/sql-postgresql.json"
     },
     {
@@ -308,9 +393,14 @@
         "Indexes",
         "Aggregation",
         "Consistency",
-        "Scaling"
+        "Scaling",
+        "Schema validation",
+        "Transactions",
+        "Change streams",
+        "Data migration",
+        "Operational monitoring"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/mongodb-nosql.json"
     },
     {
@@ -323,9 +413,14 @@
         "Expiration",
         "Data structures",
         "Consistency",
-        "Failure handling"
+        "Failure handling",
+        "Distributed locks",
+        "Pub/Sub and streams",
+        "Rate limiting",
+        "Persistence",
+        "Cluster and replication"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/redis-caching.json"
     },
     {
@@ -338,9 +433,14 @@
         "Files and permissions",
         "TCP and DNS",
         "Resource analysis",
-        "Troubleshooting"
+        "Troubleshooting",
+        "Shell and scripting",
+        "Systemd and services",
+        "Load balancing and proxies",
+        "TLS and certificates",
+        "Firewalls and security"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/linux-networking.json"
     },
     {
@@ -353,9 +453,14 @@
         "Networking",
         "Storage",
         "Security",
-        "Build optimization"
+        "Build optimization",
+        "Compose and multi-container",
+        "Registries and distribution",
+        "Runtime and resource limits",
+        "Logging and monitoring",
+        "Debugging containers"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/docker.json"
     },
     {
@@ -368,9 +473,14 @@
         "Services and ingress",
         "Configuration",
         "Security",
-        "Reliability"
+        "Reliability",
+        "Scheduling and affinity",
+        "Autoscaling",
+        "Storage and volumes",
+        "Helm and packaging",
+        "Observability"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/kubernetes.json"
     },
     {
@@ -383,9 +493,14 @@
         "Terraform",
         "Secrets",
         "Deployment strategies",
-        "Observability"
+        "Observability",
+        "Testing in pipelines",
+        "Artifact and registry management",
+        "Environment promotion",
+        "Drift detection",
+        "Rollback and recovery"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/cicd-infrastructure.json"
     },
     {
@@ -398,9 +513,14 @@
         "APIs and boundaries",
         "Data architecture",
         "Scale",
-        "Trade-offs"
+        "Trade-offs",
+        "Caching strategy",
+        "Load balancing",
+        "Rate limiting and quotas",
+        "Consistency and replication",
+        "Observability and SLOs"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/system-design.json"
     },
     {
@@ -413,9 +533,14 @@
         "Messaging",
         "Resilience",
         "Observability",
-        "Threat modeling"
+        "Threat modeling",
+        "Consensus and coordination",
+        "Time and ordering",
+        "Partitioning and sharding",
+        "Idempotency and deduplication",
+        "Disaster recovery"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/distributed-systems.json"
     },
     {
@@ -428,9 +553,14 @@
         "Motivation and career fit",
         "Strengths, weaknesses and growth",
         "Teamwork, conflict and feedback",
-        "Time management and prioritization"
+        "Time management and prioritization",
+        "Leadership and influence",
+        "Failure and learning",
+        "Handling feedback and criticism",
+        "Communication with stakeholders",
+        "Salary and offer negotiation"
       ],
-      "questionCount": 80,
+      "questionCount": 160,
       "file": "tracks/behavioral-hr.json"
     }
   ]
