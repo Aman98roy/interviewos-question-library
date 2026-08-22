@@ -25,8 +25,45 @@
         "Auto Scaling and Load Balancing",
         "Cost Optimization"
       ],
-      "questionCount": 30,
       "file": "tracks/aws.json"
+    },
+    {
+      "slug": "azure",
+      "title": "Microsoft Azure",
+      "category": "cloud",
+      "summary": "Build secure, observable, and cost-aware applications on Microsoft Azure.",
+      "topics": [
+        "Microsoft Entra ID",
+        "Virtual Networks",
+        "App Service and Functions",
+        "Azure Storage",
+        "Azure SQL and Cosmos DB",
+        "Azure Monitor",
+        "Service Bus",
+        "AKS",
+        "Key Vault",
+        "Cost Management"
+      ],
+      "file": "tracks/azure.json"
+    },
+    {
+      "slug": "gcp",
+      "title": "Google Cloud",
+      "category": "cloud",
+      "summary": "Design reliable, secure, and scalable workloads on Google Cloud.",
+      "topics": [
+        "IAM and Service Accounts",
+        "VPC",
+        "Cloud Run and GKE",
+        "Cloud Storage",
+        "Cloud SQL and Spanner",
+        "Pub/Sub",
+        "Cloud Monitoring",
+        "BigQuery",
+        "Secret Manager",
+        "Cost and Billing"
+      ],
+      "file": "tracks/gcp.json"
     }
   ]
 }

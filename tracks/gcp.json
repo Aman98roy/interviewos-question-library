@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "topic": "Google Cloud",
+  "questions": [
+    {
+      "id": "gcp-basic-01",
+      "level": "basic",
+      "category": "IAM and Service Accounts",
+      "question": "How does IAM work in Google Cloud, and what is a service account?",
+      "answer": "**Direct answer:** Google Cloud IAM binds principals to roles on resources. A service account is a workload identity used by applications, virtual machines, and automation rather than by a person.\n\n**In practice:** Grant predefined roles at the smallest practical resource scope, let workloads attach or impersonate service accounts, require strong human authentication, and avoid downloadable service-account keys.",
+      "explanation": "**Detailed explanation:** A role contains permissions, while a policy binding connects that role to a principal. Policies inherit down the organization, folder, project, and resource hierarchy, and conditional bindings can narrow access further.\n\n**Why it matters:** Service-account impersonation issues short-lived credentials and leaves useful audit evidence. Policy Analyzer and audit logs help verify effective and unused access.",
+      "example": "A Cloud Run image processor uses its attached service account to read one upload bucket and write one derivatives bucket without carrying a JSON key.",
+      "keyPoints": ["**Policies bind principals to roles on resources.**", "**Service accounts identify workloads.**", "**Prefer short-lived impersonation over keys.**"],
+      "commonMistakes": ["Granting Owner at project level for convenience", "Downloading long-lived service-account keys", "Confusing the service account identity with permission to impersonate it"]
+    },
+    {
+      "id": "gcp-basic-02",
+      "level": "basic",
+      "category": "VPC",
+      "question": "What is unusual about Google Cloud VPC networks and subnets?",
+      "answer": "**Direct answer:** A Google Cloud VPC network is global, while its subnets and IP ranges are regional. Resources communicate according to routes, hierarchical or VPC firewall policies, service exposure, and public or private addressing.\n\n**In practice:** Plan non-overlapping address ranges, keep workloads private by default, use Private Google Access or Private Service Connect where appropriate, and allow only required flows.",
+      "explanation": "**Detailed explanation:** Because the network spans regions, teams can connect regional workloads without creating a separate VPC for every region. Firewall rules are stateful and can target network tags or service accounts.\n\n**Why it matters:** Debug from DNS through routes, firewall rules, NAT, load balancers, and the destination listener. Connectivity Tests and VPC Flow Logs provide evidence instead of guesswork.",
+      "example": "A global application places regional GKE nodes in private subnets, exposes only an external load balancer, and reaches Google APIs through Private Google Access.",
+      "keyPoints": ["**The VPC is global; subnets are regional.**", "**Routes and firewall policies decide reachability.**", "**Private service access reduces public exposure.**"],
+      "commonMistakes": ["Creating overlapping subnet ranges", "Opening SSH to the internet", "Assuming a private IP alone guarantees isolation"]
+    },
+    {
+      "id": "gcp-basic-03",
+      "level": "basic",
+      "category": "Cloud Run and GKE",
+      "question": "When should you choose Cloud Run instead of Google Kubernetes Engine?",
+      "answer": "**Direct answer:** Cloud Run fits stateless HTTP services and jobs when you want automatic scaling and minimal platform operations. GKE fits workloads that require Kubernetes scheduling, networking, controllers, portability, or detailed cluster control.\n\n**In practice:** Start with Cloud Run if its request, runtime, networking, and execution model fits. Choose GKE only when the additional control justifies cluster operations.",
+      "explanation": "**Detailed explanation:** Cloud Run scales container instances from demand and can scale to zero, but startup time and concurrency affect latency. GKE offers broader workload shapes but requires deliberate probes, resources, node capacity, upgrades, identity, and policy.\n\n**Why it matters:** Both platforms can overwhelm a database when scaling quickly. Bound concurrency, pool connections, queue background work, and test cold starts.",
+      "example": "A webhook API runs on Cloud Run with bounded concurrency, while a platform using custom Kubernetes operators and specialized GPU scheduling runs on GKE.",
+      "keyPoints": ["**Cloud Run minimizes operations for stateless containers.**", "**GKE provides Kubernetes control at an operational cost.**", "**Protect dependencies from rapid scale.**"],
+      "commonMistakes": ["Choosing GKE for a single simple API", "Assuming scale-to-zero has no cold-start trade-off", "Leaving database connection growth unbounded"]
+    },
+    {
+      "id": "gcp-basic-04",
+      "level": "basic",
+      "category": "Cloud Storage",
+      "question": "How is data organized in Cloud Storage, and how should private downloads work?",
+      "answer": "**Direct answer:** Cloud Storage keeps objects under names inside buckets; folder-like paths are prefixes rather than filesystem directories. Keep the bucket private, grant workload identities narrow IAM roles, and issue short-lived signed URLs when an authorized user needs direct download access.\n\n**In practice:** Select location, storage class, retention, versioning, encryption, and lifecycle from latency, recovery, compliance, and cost needs.",
+      "explanation": "**Detailed explanation:** Object writes replace an object generation rather than editing bytes in place. Uniform bucket-level access simplifies permission management by avoiding object ACLs.\n\n**Why it matters:** Versioning protects recovery but retains old generations and cost. Lifecycle rules should delete or transition data only after restoration and legal-retention requirements are understood.",
+      "example": "A document platform stores private originals in a regional bucket, returns five-minute signed downloads, and moves inactive versions to colder storage after 90 days.",
+      "keyPoints": ["**Buckets contain objects, not real folders.**", "**Use uniform IAM and short-lived signed access.**", "**Lifecycle policy must match recovery needs.**"],
+      "commonMistakes": ["Making a bucket public for application downloads", "Treating object storage like a POSIX filesystem", "Retaining every old generation indefinitely"]
+    },
+    {
+      "id": "gcp-basic-05",
+      "level": "basic",
+      "category": "Cloud SQL and Spanner",
+      "question": "How do Cloud SQL and Cloud Spanner differ?",
+      "answer": "**Direct answer:** Cloud SQL provides managed MySQL, PostgreSQL, or SQL Server for conventional relational workloads. Spanner is a distributed relational database designed for horizontal scale, strong consistency, and regional or multi-region availability.\n\n**In practice:** Use Cloud SQL when one managed relational primary and replicas meet the workload. Consider Spanner only when measured scale, availability, or geographic requirements justify its schema, query, and cost model.",
+      "explanation": "**Detailed explanation:** Cloud SQL preserves familiar engines and tooling but write scale centers on a primary. Spanner distributes data by key ranges and requires careful primary-key design to avoid hotspots.\n\n**Why it matters:** Database choice begins with transactions, access patterns, throughput, latency, recovery, and operations. A globally distributed label does not compensate for a poor key or unnecessary complexity.",
+      "example": "A regional SaaS product uses Cloud SQL PostgreSQL, while a global ledger with very high write volume and strict cross-region consistency uses Spanner after load testing.",
+      "keyPoints": ["**Cloud SQL uses familiar managed relational engines.**", "**Spanner targets distributed relational scale.**", "**Measured requirements must justify Spanner.**"],
+      "commonMistakes": ["Choosing Spanner for a small ordinary database", "Using a monotonically increasing hot primary key", "Treating read replicas as synchronous failover backups"]
+    },
+    {
+      "id": "gcp-basic-06",
+      "level": "basic",
+      "category": "Pub/Sub",
+      "question": "What problem does Pub/Sub solve, and what delivery behavior must consumers expect?",
+      "answer": "**Direct answer:** Pub/Sub decouples event publishers from subscribers and lets each subscription process the same topic independently. Consumers should normally design for at-least-once delivery, which means a message may be received again.\n\n**In practice:** Use stable event IDs, idempotent handlers, appropriate acknowledgement deadlines, dead-letter topics, retry policies, and monitoring for oldest unacknowledged message age.",
+      "explanation": "**Detailed explanation:** A publisher does not wait for every consumer. Each subscription owns its backlog and scaling, so analytics failure need not block fulfillment. Ordering keys can preserve order for related messages but constrain parallelism.\n\n**Why it matters:** Acknowledging before durable work can lose processing; acknowledging too late can cause duplicates. Tune the deadline to real processing duration and test redelivery.",
+      "example": "An order topic feeds fulfillment, analytics, and email subscriptions. Each records event IDs before side effects and sends permanently invalid messages to a dead-letter topic.",
+      "keyPoints": ["**Topics decouple publishers from subscribers.**", "**Each subscription owns an independent backlog.**", "**Consumers must handle redelivery safely.**"],
+      "commonMistakes": ["Assuming every message arrives exactly once", "Acknowledging before business work commits", "Creating a dead-letter topic without an owner or replay process"]
+    },
+    {
+      "id": "gcp-intermediate-01",
+      "level": "intermediate",
+      "category": "Cloud Monitoring",
+      "question": "How would you build useful observability for a customer-facing service on Google Cloud?",
+      "answer": "**Direct answer:** Define service-level indicators for latency, traffic, errors, and saturation, then build Cloud Monitoring dashboards and alerts around customer impact. Use structured Cloud Logging entries and trace correlation so operators can move from an alert to affected requests and dependencies.\n\n**In practice:** Give every alert an owner, threshold, evaluation window, and runbook. Add uptime checks for critical public journeys.",
+      "explanation": "**Detailed explanation:** Metrics reveal trends, logs explain individual events, and traces show time across service boundaries. Error Reporting groups failures, while audit logs show administrative and data access where enabled.\n\n**Why it matters:** Unbounded log volume and metric labels create cost and noise. Redact credentials and personal data, choose retention intentionally, and page only on actionable symptoms.",
+      "example": "A checkout SLO alert links to a dashboard where elevated Cloud Run latency aligns with Cloud SQL connection waits; trace IDs identify the exact slow dependency.",
+      "keyPoints": ["**Observe customer symptoms first.**", "**Correlate metrics, logs, and traces.**", "**Control alert and telemetry noise.**"],
+      "commonMistakes": ["Paging on every CPU change", "Logging secrets or customer data", "Using high-cardinality values as metric labels"]
+    },
+    {
+      "id": "gcp-intermediate-02",
+      "level": "intermediate",
+      "category": "BigQuery",
+      "question": "How would you keep BigQuery analytics fast and cost controlled as data grows?",
+      "answer": "**Direct answer:** Partition large tables by the time or range commonly filtered, cluster by frequently selective columns, select only required fields, and require partition filters where accidental full scans are risky. Monitor bytes processed and use dry runs or maximum-byte limits before expensive queries.\n\n**In practice:** Separate raw, transformed, and presentation datasets, control access at the dataset or authorized-view boundary, and expire temporary tables.",
+      "explanation": "**Detailed explanation:** BigQuery charges primarily for scanned data under on-demand pricing, so SELECT * and missing partition filters waste money. Clustering can reduce blocks read inside relevant partitions.\n\n**Why it matters:** Materialized views, scheduled transformations, or reserved capacity help repeated workloads, but only after query history shows the need. Performance and cost should be measured from representative queries.",
+      "example": "An events table partitions by event date and clusters by tenant and event type; dashboard queries scan one day and selected columns instead of the full multi-year table.",
+      "keyPoints": ["**Partition to eliminate irrelevant data.**", "**Cluster around common selective filters.**", "**Measure bytes before running expensive queries.**"],
+      "commonMistakes": ["Using SELECT * in production dashboards", "Partitioning on a field queries never filter", "Giving broad dataset access instead of authorized views"]
+    },
+    {
+      "id": "gcp-intermediate-03",
+      "level": "intermediate",
+      "category": "Secret Manager",
+      "question": "How would you provide a Cloud Run service one secret securely and rotate it?",
+      "answer": "**Direct answer:** Attach a dedicated service account to Cloud Run, grant it Secret Manager Secret Accessor on only the required secret, and read a specific or current secret version through the platform integration or client library. Do not store a service-account key or secret value in the image.\n\n**In practice:** Restrict administration separately from access, enable audit logs, rotate by adding a version, test the application, and disable the old version after a safe overlap.",
+      "explanation": "**Detailed explanation:** IAM authorization uses the runtime service identity, so no bootstrap password is needed. Referencing latest eases rotation but requires the application to refresh; pinning a version gives predictable rollout but requires deployment coordination.\n\n**Why it matters:** Rotation is a behavior, not a checkbox. Exercise failure, rollback, and access revocation before an emergency.",
+      "example": "A payment service reads one API credential through its Cloud Run service account, validates the new version in a canary revision, shifts traffic, then disables the previous version.",
+      "keyPoints": ["**Use a dedicated runtime service account.**", "**Scope access to one secret.**", "**Rotate through tested versions.**"],
+      "commonMistakes": ["Baking secrets into container images", "Granting project-wide secret access", "Disabling the old version before applications refresh"]
+    },
+    {
+      "id": "gcp-intermediate-04",
+      "level": "intermediate",
+      "category": "Cost and Billing",
+      "question": "How would you investigate and control a sudden increase in Google Cloud spend?",
+      "answer": "**Direct answer:** Use Billing reports and detailed billing export to identify the project, service, SKU, region, and date responsible. Correlate the change with traffic and deployments, then apply the relevant fix: right-size compute, stop idle resources, tune log retention, reduce egress, or optimize BigQuery scans.\n\n**In practice:** Create budgets and anomaly notifications, assign project owners and labels, and track cost per useful business transaction.",
+      "explanation": "**Detailed explanation:** Budgets alert but do not normally cap spend. Billing export to BigQuery enables precise allocation and trend analysis. Sustained-use discounts may apply automatically, while commitments should cover only measured stable demand.\n\n**Why it matters:** Validate any saving against reliability and performance. Cost shifting to engineering effort or customer latency can be more expensive than the original bill.",
+      "example": "A team traces a spike to cross-region Cloud Storage downloads, moves compute next to the data, and verifies lower egress cost without increasing response latency.",
+      "keyPoints": ["**Find the exact SKU and owner first.**", "**Budgets alert; they are not a hard cap.**", "**Track unit cost and reliability together.**"],
+      "commonMistakes": ["Changing resources before identifying the cost driver", "Treating a budget as automatic shutdown", "Buying commitments for temporary demand"]
+    },
+    {
+      "id": "gcp-advanced-01",
+      "level": "advanced",
+      "category": "IAM and Service Accounts",
+      "question": "How would you enforce organization-wide security guardrails across many Google Cloud projects?",
+      "answer": "**Direct answer:** Use the organization and folder hierarchy to inherit IAM and Organization Policy constraints, separate production from non-production, centralize audit and security findings, and give teams project-level freedom only inside those guardrails. Use groups and service-account impersonation instead of direct user grants and keys.\n\n**In practice:** Apply constraints gradually, test them in a controlled folder, manage exceptions with ownership and expiry, and keep break-glass access strongly authenticated and audited.",
+      "explanation": "**Detailed explanation:** IAM grants who may act; Organization Policy restricts what configurations are allowed, such as external IPs or service-account key creation. VPC Service Controls can reduce data exfiltration paths for supported services but add integration complexity.\n\n**Why it matters:** Preventive controls need detective controls. Security Command Center, Cloud Asset Inventory, policy analysis, and audit logs verify drift and unexpected exposure.",
+      "example": "A company blocks service-account key creation and public bucket access across production folders, while time-limited exceptions require security approval and automated expiry.",
+      "keyPoints": ["**IAM grants access; Organization Policy sets guardrails.**", "**Apply controls through the resource hierarchy.**", "**Every exception needs ownership and expiry.**"],
+      "commonMistakes": ["Granting roles directly to many individual users", "Rolling out a broad deny without testing", "Using VPC Service Controls without mapping supported service flows"]
+    },
+    {
+      "id": "gcp-advanced-02",
+      "level": "advanced",
+      "category": "Cloud SQL and Spanner",
+      "question": "How would you design and prove multi-region recovery for a critical Google Cloud application?",
+      "answer": "**Direct answer:** Begin with approved RTO, RPO, consistency, and write-location requirements. Select backup/restore, pilot light, warm standby, or active-active; deploy compute, identity, secrets, networking, and observability in the recovery region; and use the database replication mechanism that matches the chosen guarantees.\n\n**In practice:** Protect backups in a separate administrative boundary, define traffic switching and write fencing, and rehearse failover and failback on a schedule.",
+      "explanation": "**Detailed explanation:** Cloud SQL cross-region replicas can support regional recovery but replication lag affects RPO and promotion is an operational event. Spanner multi-region configurations provide stronger distributed behavior at higher cost and schema discipline.\n\n**Why it matters:** No single product creates disaster recovery. Time each dependency, verify the last durable transaction, and document who declares and ends the disaster.",
+      "example": "A commerce platform keeps warm Cloud Run capacity and a Cloud SQL cross-region replica, switches DNS during a game day, and proves a 50-minute recovery against a 60-minute target.",
+      "keyPoints": ["**Business RTO and RPO choose the pattern.**", "**Replication lag affects recoverable data.**", "**Practice traffic, data, and operational recovery together.**"],
+      "commonMistakes": ["Calling a replica a complete recovery plan", "Failing over writes without fencing the old primary", "Never testing restoration and failback"]
+    },
+    {
+      "id": "gcp-scenario-01",
+      "level": "scenario",
+      "category": "Cloud Run and GKE",
+      "question": "Scenario: A Cloud Run website goes viral and starts returning errors during rapid scale-out. How do you stabilize it?",
+      "answer": "**Direct answer:** Correlate request rate, instance count, concurrency, cold-start latency, errors, database connections, quota events, and downstream latency. Protect the critical path with Cloud CDN, Cloud Armor rate limits, minimum warm instances where justified, bounded Cloud Run concurrency, and Pub/Sub for background work.\n\n**In practice:** Reduce optional synchronous work, cap retries, and reserve database capacity for login and checkout before raising application limits.",
+      "explanation": "**Detailed explanation:** Cloud Run may add instances faster than Cloud SQL or an external API can accept connections. Raising maximum instances without dependency limits can amplify failure. Caching, queues, backpressure, and graceful degradation create room for safe scaling.\n\n**Why it matters:** After mitigation, load-test the observed traffic shape and validate user latency, error rate, quota headroom, and cost—not only container count.",
+      "example": "A product launch caches catalog pages, queues analytics events, sets a safe maximum instance count, and temporarily disables recommendations while checkout remains healthy.",
+      "flow": ["Users -> Cloud CDN and Cloud Armor", "-> Cloud Run with bounded concurrency", "-> protected cache and Cloud SQL", "-> Pub/Sub for background work"],
+      "keyPoints": ["**Rapid compute scale can overload dependencies.**", "**Cache, queue, and apply backpressure.**", "**Preserve critical transactions before optional features.**"],
+      "commonMistakes": ["Raising maximum instances without checking database capacity", "Using immediate unlimited retries", "Measuring recovery only by instance count"]
+    },
+    {
+      "id": "gcp-scenario-02",
+      "level": "scenario",
+      "category": "Pub/Sub",
+      "question": "Scenario: A Pub/Sub subscription backlog keeps growing after a deployment. How do you find the cause and recover safely?",
+      "answer": "**Direct answer:** Compare publish rate, pull or push delivery rate, oldest unacknowledged age, acknowledgement deadline expirations, dead letters, consumer errors, and downstream saturation before scaling. Roll back a bad release, stop poison-message retry loops, and increase healthy consumer capacity only within dependency limits.\n\n**In practice:** Preserve messages, isolate a failing sample, verify schema compatibility and permissions, then replay dead letters through the idempotent consumer after repair.",
+      "explanation": "**Detailed explanation:** A growing backlog means arrival exceeds successful completion. Causes include a code regression, expired acknowledgements, quota throttling, insufficient instances, a hot ordering key, or a slow dependency.\n\n**Why it matters:** Scaling consumers blindly can overload the database and increase redelivery. Recovery is complete when backlog age falls, business effects remain correct, and downstream error rates stay healthy.",
+      "example": "A schema change crashes one subscriber after parsing. The team rolls back, routes invalid messages to a dead-letter topic, deploys backward-compatible parsing, and replays with original event IDs.",
+      "keyPoints": ["**Backlog age is the clearest delay signal.**", "**Find failed completion before adding consumers.**", "**Replay only through idempotent processing.**"],
+      "commonMistakes": ["Scaling into an already saturated database", "Dropping the backlog to make the graph look healthy", "Replaying with new IDs that bypass deduplication"]
+    }
+  ]
+}

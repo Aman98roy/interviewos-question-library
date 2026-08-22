@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "topic": "Microsoft Azure",
+  "questions": [
+    {
+      "id": "azure-basic-01",
+      "level": "basic",
+      "category": "Microsoft Entra ID",
+      "question": "What is Microsoft Entra ID, and how is it different from an Azure subscription?",
+      "answer": "**Direct answer:** Microsoft Entra ID is the identity system that authenticates users, groups, applications, and managed identities. An Azure subscription is a billing and resource-management boundary that trusts an Entra tenant for identity.\n\n**In practice:** Give people access through groups and Azure RBAC, give workloads managed identities, require MFA for privileged users, and avoid sharing owner-level access.",
+      "explanation": "**Detailed explanation:** Authentication proves who an identity is; authorization decides what that identity may do. Entra roles manage the directory, while Azure RBAC roles grant actions at management-group, subscription, resource-group, or resource scope.\n\n**Why it matters:** Confusing these role systems often creates excessive privilege. Review both the directory role and Azure resource assignment when investigating access.",
+      "example": "A support group receives Reader access to one production resource group, while a deployment pipeline uses a managed identity with permission to update only its application resources.",
+      "keyPoints": [
+        "**Entra ID manages identities.**",
+        "**Subscriptions organize billing and resources.**",
+        "**Azure RBAC controls resource access.**"
+      ],
+      "commonMistakes": [
+        "Granting subscription Owner when Reader or Contributor is enough",
+        "Using client secrets where managed identity is available",
+        "Confusing Entra directory roles with Azure resource roles"
+      ]
+    },
+    {
+      "id": "azure-basic-02",
+      "level": "basic",
+      "category": "Virtual Networks",
+      "question": "What is an Azure Virtual Network, and what do subnets and network security groups do?",
+      "answer": "**Direct answer:** A Virtual Network is a private IP network for Azure resources. Subnets divide its address space, route tables choose paths, and network security groups allow or deny traffic by source, destination, port, and protocol.\n\n**In practice:** Place public entry points separately from applications and data services, use private endpoints for managed services, and permit only required flows between tiers.",
+      "explanation": "**Detailed explanation:** A subnet is not private because of its name. Reachability depends on public IPs, routes, firewalls, load balancers, private endpoints, and security rules. NSGs are stateful, so permitted response traffic does not need a separate reverse rule.\n\n**Why it matters:** Diagnose connections in order with Network Watcher, effective routes, effective security rules, DNS checks, and flow logs rather than changing rules blindly.",
+      "example": "An internet-facing Application Gateway accepts HTTPS, forwards to an app subnet, and the app reaches Azure SQL through a private endpoint with public database access disabled.",
+      "keyPoints": [
+        "**Address space and routes define the network path.**",
+        "**NSGs enforce stateful traffic rules.**",
+        "**Private endpoints keep managed services off the public path.**"
+      ],
+      "commonMistakes": [
+        "Using overlapping address ranges that later block peering",
+        "Opening management ports to the internet",
+        "Assuming a subnet name makes it private"
+      ]
+    },
+    {
+      "id": "azure-basic-03",
+      "level": "basic",
+      "category": "App Service and Functions",
+      "question": "When would you choose Azure App Service instead of Azure Functions?",
+      "answer": "**Direct answer:** App Service fits continuously available web applications and APIs with predictable hosting controls. Azure Functions fits short, event-driven work that scales from triggers such as queues, timers, or HTTP requests.\n\n**In practice:** Choose from workload duration, traffic shape, startup sensitivity, networking, deployment needs, and dependency limits—not from the serverless label alone.",
+      "explanation": "**Detailed explanation:** Both services remove operating-system management, but their execution and scaling models differ. Functions can scale concurrent work quickly, while App Service keeps a web host available and supports deployment slots.\n\n**Why it matters:** Automatic scaling can overload databases and external APIs. Bound concurrency, use queues for bursts, configure timeouts, and make event handlers idempotent.",
+      "example": "A commerce API runs on App Service with a staging slot, while order-confirmation thumbnails are created by a queue-triggered Function with bounded concurrency.",
+      "keyPoints": [
+        "**App Service suits hosted web apps and APIs.**",
+        "**Functions suit short event-driven work.**",
+        "**Protect downstream services from automatic scale.**"
+      ],
+      "commonMistakes": [
+        "Using Functions for long-running stateful work",
+        "Deploying directly to production without a slot",
+        "Ignoring cold starts and downstream connection limits"
+      ]
+    },
+    {
+      "id": "azure-basic-04",
+      "level": "basic",
+      "category": "Azure Storage",
+      "question": "What is Azure Blob Storage, and how should private application files be served?",
+      "answer": "**Direct answer:** Blob Storage stores unstructured objects inside containers. Keep containers private, authorize applications with managed identities and Azure RBAC, and issue short-lived user-delegation SAS URLs when a browser needs temporary direct access.\n\n**In practice:** Choose redundancy, access tier, versioning, lifecycle, and retention from the recovery and compliance requirements.",
+      "explanation": "**Detailed explanation:** Blob Storage is object storage rather than a mounted filesystem. Whole objects are written under names, while virtual folders are name prefixes. Shared account keys provide very broad access and should be avoided when identity-based access works.\n\n**Why it matters:** Soft delete and versioning improve recovery but retain data and cost. Test restoration and lifecycle policies before depending on them.",
+      "example": "A resume platform uploads documents through five-minute user-delegation SAS URLs, scans them privately, and moves inactive originals to the cool tier after 90 days.",
+      "keyPoints": [
+        "**Keep containers private.**",
+        "**Prefer managed identity and user-delegation SAS.**",
+        "**Design lifecycle and recovery together.**"
+      ],
+      "commonMistakes": [
+        "Making a container public for convenience",
+        "Embedding storage account keys in application code",
+        "Enabling archive tiers without testing restore time"
+      ]
+    },
+    {
+      "id": "azure-basic-05",
+      "level": "basic",
+      "category": "Azure SQL and Cosmos DB",
+      "question": "How do Azure SQL Database and Cosmos DB differ, and when should each be used?",
+      "answer": "**Direct answer:** Azure SQL is a managed relational database for SQL queries, constraints, joins, and multi-row transactions. Cosmos DB is a distributed NoSQL database for known key-based access patterns, global distribution, and low-latency reads and writes at large scale.\n\n**In practice:** Choose from data relationships, query patterns, consistency, geographic requirements, throughput, and team skills.",
+      "explanation": "**Detailed explanation:** Azure SQL preserves relational integrity and flexible querying. Cosmos DB requires a partition key and charges primarily through provisioned or serverless request units; a poor key creates hot partitions and expensive cross-partition queries.\n\n**Why it matters:** Model representative requests and failure behavior before selecting a database. Neither service removes the need for backups, monitoring, capacity planning, or authorization.",
+      "example": "A booking system stores reservations and payments in Azure SQL, while globally distributed session state with predictable user-ID lookups lives in Cosmos DB.",
+      "keyPoints": [
+        "**Azure SQL protects relational integrity.**",
+        "**Cosmos DB scales partitioned access patterns globally.**",
+        "**The query and consistency requirements decide.**"
+      ],
+      "commonMistakes": [
+        "Choosing Cosmos DB before defining a partition key",
+        "Expecting relational joins from Cosmos DB",
+        "Opening Azure SQL to every public network"
+      ]
+    },
+    {
+      "id": "azure-basic-06",
+      "level": "basic",
+      "category": "Azure Monitor",
+      "question": "What does Azure Monitor collect, and what should a useful alert contain?",
+      "answer": "**Direct answer:** Azure Monitor collects platform metrics, logs, traces, and activity events. A useful alert identifies customer impact, has a stable threshold, routes to an owner, and links to a dashboard or runbook.\n\n**In practice:** Start with latency, traffic, errors, and saturation, then add dependency signals from Application Insights and Log Analytics.",
+      "explanation": "**Detailed explanation:** Metrics are efficient for trends and alarms; logs explain individual events; distributed traces connect a request across services. Activity Logs record control-plane changes such as resource updates.\n\n**Why it matters:** Alerting on every CPU fluctuation creates fatigue. Use retention limits, structured fields, correlation IDs, and carefully bounded custom dimensions to keep investigation useful and cost controlled.",
+      "example": "A checkout alert combines p99 latency and failure rate, then links the operator to an Application Insights trace showing a slow Azure SQL dependency.",
+      "keyPoints": [
+        "**Metrics show symptoms; logs and traces explain them.**",
+        "**Alert on customer impact.**",
+        "**Every alert needs ownership and action.**"
+      ],
+      "commonMistakes": [
+        "Paging on low-signal infrastructure noise",
+        "Logging secrets or personal data",
+        "Keeping high-volume logs forever"
+      ]
+    },
+    {
+      "id": "azure-intermediate-01",
+      "level": "intermediate",
+      "category": "Key Vault",
+      "question": "How would you let an App Service read one secret from Key Vault without storing credentials?",
+      "answer": "**Direct answer:** Enable a managed identity on the App Service, grant that identity the narrow Key Vault Secrets User role at the smallest practical scope, and retrieve the secret through the Azure SDK or a Key Vault reference. Do not place client secrets in source code or deployment variables.\n\n**In practice:** Restrict vault networking, enable soft delete and purge protection, rotate the secret, and monitor access and denied attempts.",
+      "explanation": "**Detailed explanation:** Managed identity lets Azure issue short-lived tokens without an application-managed password. Azure RBAC controls which vault operations the identity may perform, while a private endpoint can keep data-plane access on the private network.\n\n**Why it matters:** Rotation must be tested end to end. Applications should handle secret refresh without requiring an unsafe manual redeploy.",
+      "example": "A billing API uses its system-assigned identity to read only the payment-provider secret from a private Key Vault and refreshes it after rotation.",
+      "keyPoints": [
+        "**Managed identity removes stored credentials.**",
+        "**Grant only the required secret operation.**",
+        "**Test rotation and recovery.**"
+      ],
+      "commonMistakes": [
+        "Giving the application Key Vault Administrator",
+        "Storing the vault credential beside the secret",
+        "Rotating a secret without confirming application refresh behavior"
+      ]
+    },
+    {
+      "id": "azure-intermediate-02",
+      "level": "intermediate",
+      "category": "Service Bus",
+      "question": "How would you design reliable order processing with Azure Service Bus?",
+      "answer": "**Direct answer:** Send orders to a durable queue or topic subscription, use a stable message ID and idempotent consumer, complete a message only after its business work succeeds, and dead-letter messages that cannot be processed after bounded retries.\n\n**In practice:** Set lock duration for normal processing, renew it for longer work, version message contracts compatibly, and monitor active count, oldest age, dead letters, and processing latency.",
+      "explanation": "**Detailed explanation:** Peek-lock delivery hides a message while a consumer works, then completes or abandons it. A crash can cause redelivery, so duplicate-safe business logic remains essential. Topics provide fan-out through independent subscriptions.\n\n**Why it matters:** Sessions provide ordered processing for a related message group but reduce parallelism. Use ordering only where the business actually requires it.",
+      "example": "An order topic feeds separate fulfillment, analytics, and notification subscriptions; each consumer records processed message IDs before applying side effects.",
+      "keyPoints": [
+        "**Assume messages can be redelivered.**",
+        "**Use topics for independent fan-out.**",
+        "**Own and monitor the dead-letter queue.**"
+      ],
+      "commonMistakes": [
+        "Completing a message before committing business work",
+        "Retrying poison messages forever",
+        "Assuming queue delivery alone prevents duplicate charges"
+      ]
+    },
+    {
+      "id": "azure-intermediate-03",
+      "level": "intermediate",
+      "category": "AKS",
+      "question": "What production controls would you add before running an application on Azure Kubernetes Service?",
+      "answer": "**Direct answer:** Define requests and limits, readiness and liveness probes, multiple replicas across zones, disruption budgets, controlled autoscaling, workload identity, private image access, and observable rollout and rollback. Keep the cluster and node pools patched.\n\n**In practice:** Use namespaces and network policies for boundaries, Key Vault integration for secrets, and Azure Policy only for rules the team can operate safely.",
+      "explanation": "**Detailed explanation:** AKS manages the Kubernetes control plane, not the reliability of workloads. Scheduler placement, node capacity, DNS, ingress, storage, and application dependencies can each fail independently.\n\n**Why it matters:** Kubernetes adds operational cost. Prefer App Service, Container Apps, or Functions when they meet the workload; choose AKS when scheduling control, ecosystem requirements, or multi-service operations justify it.",
+      "example": "A multi-service platform uses separate system and application node pools, workload identity for Azure resources, zone-spread replicas, and canary deployments guarded by error-rate alerts.",
+      "keyPoints": [
+        "**AKS does not operate the application for you.**",
+        "**Probes, limits, identity, and rollout safety are mandatory.**",
+        "**Use a simpler platform when it meets the requirement.**"
+      ],
+      "commonMistakes": [
+        "Running every workload on AKS by default",
+        "Using one replica with no disruption budget",
+        "Giving pods broad cluster or cloud permissions"
+      ]
+    },
+    {
+      "id": "azure-intermediate-04",
+      "level": "intermediate",
+      "category": "Cost Management",
+      "question": "How would you find and reduce an unexpected Azure cost increase without harming reliability?",
+      "answer": "**Direct answer:** Use Cost Analysis to identify the subscription, resource group, service, meter, and date where spend changed. Correlate that change with deployments and usage, then choose the service-specific lever: right-size compute, remove idle resources, tune retention, reduce data transfer, or buy reservations only for measured steady usage.\n\n**In practice:** Add budgets, anomaly alerts, mandatory ownership tags, and a unit-cost metric such as cost per order.",
+      "explanation": "**Detailed explanation:** Total cost can rise correctly when traffic rises, so attribution and unit economics matter. Network egress, Log Analytics ingestion, unattached disks, snapshots, and premium service tiers are frequent hidden drivers.\n\n**Why it matters:** Validate savings against latency, availability, recovery, and engineering effort. A cheaper configuration that causes incidents is not an optimization.",
+      "example": "A team traces a bill spike to verbose diagnostics retained indefinitely, keeps security logs, samples noisy debug events, and sets a 30-day workspace retention policy.",
+      "keyPoints": [
+        "**Attribute the exact meter before changing resources.**",
+        "**Measure unit cost alongside total cost.**",
+        "**Protect reliability while optimizing.**"
+      ],
+      "commonMistakes": [
+        "Buying reservations before measuring stable demand",
+        "Deleting resources based only on low CPU",
+        "Ignoring logging and data-transfer charges"
+      ]
+    },
+    {
+      "id": "azure-advanced-01",
+      "level": "advanced",
+      "category": "Virtual Networks",
+      "question": "How would you design governed connectivity across many Azure subscriptions and teams?",
+      "answer": "**Direct answer:** Use management groups and Azure Policy for governance, separate subscriptions by environment or ownership, and connect spoke virtual networks through a governed hub or Azure Virtual WAN. Centralize only shared services that need it, such as DNS, firewall, and controlled egress.\n\n**In practice:** Allocate non-overlapping addresses with IPAM, separate route tables by trust zone, use private endpoints for platform services, and automate policy and network changes through reviewed infrastructure code.",
+      "explanation": "**Detailed explanation:** A hub-and-spoke design reduces uncontrolled peering, but central appliances can become throughput, cost, and failure bottlenecks. DNS resolution and symmetric routing through stateful firewalls must be designed with the routes.\n\n**Why it matters:** Prove segmentation with Network Watcher, flow logs, policy compliance, and automated reachability checks. Test regional hub failure and the operational path for emergency changes.",
+      "example": "Production and development spokes use separate hub route tables; both reach central DNS and logging, but no route allows development to initiate traffic into production.",
+      "keyPoints": [
+        "**Govern subscriptions and networks together.**",
+        "**Keep trust zones explicit.**",
+        "**Test DNS, routes, inspection, and failure paths.**"
+      ],
+      "commonMistakes": [
+        "Building one flat network for every team",
+        "Centralizing traffic without sizing the shared bottleneck",
+        "Ignoring overlapping address plans and asymmetric routes"
+      ]
+    },
+    {
+      "id": "azure-advanced-02",
+      "level": "advanced",
+      "category": "Azure SQL and Cosmos DB",
+      "question": "How would you choose a multi-region data strategy for an Azure application with strict recovery objectives?",
+      "answer": "**Direct answer:** Begin with approved RTO, RPO, consistency, and write-location requirements. Azure SQL failover groups fit relational workloads needing managed cross-region replication; Cosmos DB multi-region capabilities fit partitioned workloads that can define conflict and consistency behavior.\n\n**In practice:** Keep infrastructure deployable in the recovery region, protect backups from account compromise, define traffic failover, and rehearse both failover and failback with measured results.",
+      "explanation": "**Detailed explanation:** Multi-region compute is useless if data, secrets, DNS, identity, or external dependencies cannot recover. Active-active writes reduce recovery time but introduce conflict handling and a larger blast radius.\n\n**Why it matters:** Choose the least complex pattern that meets objectives: backup/restore, pilot light, warm standby, or active-active. Record actual restoration time and the last recoverable transaction during exercises.",
+      "example": "A payments service uses an Azure SQL failover group and warm application capacity in a paired region, then proves a 45-minute recovery against a 60-minute RTO in quarterly exercises.",
+      "keyPoints": [
+        "**RTO, RPO, and consistency drive the design.**",
+        "**Data recovery and traffic failover are separate.**",
+        "**A disaster plan must be rehearsed.**"
+      ],
+      "commonMistakes": [
+        "Calling geo-replication a complete recovery plan",
+        "Running active-active writes without conflict rules",
+        "Testing failover without testing failback"
+      ]
+    },
+    {
+      "id": "azure-scenario-01",
+      "level": "scenario",
+      "category": "App Service and Functions",
+      "question": "Scenario: An Azure-hosted product goes viral and traffic rises twenty times in minutes. How do you keep checkout responsive?",
+      "answer": "**Direct answer:** Protect the critical path first. Cache public content at Front Door, apply WAF and rate limits, scale stateless App Service instances on a demand signal, and queue email, analytics, and media work through Service Bus. Reserve database connections and throughput for authentication, inventory, and checkout.\n\n**In practice:** Disable expensive optional features before dependencies collapse, confirm subscription quotas, and watch latency, errors, saturation, queue age, database connections, and spend on one timeline.",
+      "explanation": "**Detailed explanation:** Scaling the web tier alone can make an outage worse by multiplying database connections and downstream calls. Caching, queues, bounded concurrency, and graceful degradation absorb pressure while new capacity becomes ready.\n\n**Why it matters:** After recovery, replay the real traffic shape in a load test, tune warm-up and autoscale rules, and document the feature flags and thresholds used during overload.",
+      "example": "A ticket site caches event pages at Front Door, queues confirmation messages, limits search requests per user, and temporarily disables recommendations while preserving payment and reservation traffic.",
+      "flow": [
+        "Users -> Azure Front Door and WAF",
+        "-> App Service autoscale",
+        "-> protected cache and database",
+        "-> Service Bus for background work"
+      ],
+      "keyPoints": [
+        "**Protect checkout before optional features.**",
+        "**Scale dependencies safely, not only web servers.**",
+        "**Use caching, queues, and graceful degradation.**"
+      ],
+      "commonMistakes": [
+        "Scaling App Service until it exhausts database connections",
+        "Leaving optional expensive features enabled",
+        "Using unlimited immediate retries"
+      ]
+    },
+    {
+      "id": "azure-scenario-02",
+      "level": "scenario",
+      "category": "Service Bus",
+      "question": "Scenario: A Service Bus queue is growing and duplicate orders are appearing. How do you diagnose and fix it?",
+      "answer": "**Direct answer:** Compare enqueue rate, completion rate, active messages, oldest age, lock-lost errors, dead letters, and consumer failures. Check whether processing exceeds the lock duration or consumers apply side effects before recording idempotency. Stabilize by bounding retries, fixing lock renewal, scaling healthy consumers, and stopping duplicate effects with a durable order or message key.\n\n**In practice:** Quarantine poison messages and reduce producer pressure if downstream capacity is saturated.",
+      "explanation": "**Detailed explanation:** A lock can expire before work completes, allowing another consumer to receive the same message. A crash after charging but before completing the message also causes redelivery. Idempotency must surround the business effect, not only the queue receive call.\n\n**Why it matters:** Confirm the fix by replaying duplicates and long-running messages in a test environment, then observe falling queue age without a rise in downstream errors.",
+      "example": "An order consumer records the message ID in the same Azure SQL transaction as the order update. Redelivered messages find the record and safely return without charging twice.",
+      "keyPoints": [
+        "**Queue age shows whether consumers keep up.**",
+        "**Lock expiry causes legitimate redelivery.**",
+        "**Idempotency protects the business effect.**"
+      ],
+      "commonMistakes": [
+        "Increasing concurrency while the database is already saturated",
+        "Deleting duplicate messages without fixing idempotency",
+        "Ignoring dead-letter ownership and replay"
+      ]
+    }
+  ]
+}

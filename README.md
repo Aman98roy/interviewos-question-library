@@ -4,7 +4,8 @@ Human-written interview questions for InterviewOS. No question generators or tem
 
 ## Catalog
 
-- AWS: 30 curated questions
+- Handwritten AWS, Microsoft Azure, and Google Cloud tracks
+- Question counts are read directly from each track file
 - Basic, intermediate, advanced, and scenario levels
 - Answers include explanations, real-world examples, and common mistakes
 

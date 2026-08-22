@@ -20,7 +20,7 @@ for (const summary of manifest.tracks) {
 
   const track = await json(summary.file);
   assert(track.schemaVersion === 1 && track.topic === summary.title, `${summary.slug} metadata does not match manifest`);
-  assert(Array.isArray(track.questions) && track.questions.length === summary.questionCount, `${summary.slug} must contain ${summary.questionCount} questions`);
+  assert(Array.isArray(track.questions) && track.questions.length > 0, `${summary.slug} must contain questions`);
   unique(track.questions.map(({ id }) => requiredId(id, `${summary.slug} question id`)), `${summary.slug} question IDs`);
   unique(track.questions.map(({ question }) => requiredText(question, 'question')), `${summary.slug} question prompts`);
 
@@ -41,8 +41,6 @@ for (const summary of manifest.tracks) {
   }
 }
 
-const expectedQuestions = manifest.tracks.reduce((total, track) => total + track.questionCount, 0);
-assert(ids.size === expectedQuestions, `Expected ${expectedQuestions} unique questions`);
 process.stdout.write(`${JSON.stringify({ valid: true, tracks: manifest.tracks.length, questions: ids.size })}\n`);
 
 async function json(path) {
