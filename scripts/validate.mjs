@@ -15,6 +15,21 @@ assert(Array.isArray(manifest.tracks) && manifest.tracks.length === 26, 'Manifes
 const categoryIds = unique(manifest.categories.map((item) => required(item.slug, 'category slug')), 'category slugs');
 const trackIds = unique(manifest.tracks.map((item) => required(item.slug, 'track slug')), 'track slugs');
 const allQuestionIds = new Set();
+const allSpokenAnswers = new Set();
+const technicalKindHeadings = {
+  conceptual: '**How it works:**',
+  practical: '**Implementation:**',
+  troubleshooting: '**Diagnosis:**',
+  scenario: '**Decision:**',
+  design: '**Design:**',
+};
+const careerKindHeadings = {
+  conceptual: '**Action — Credibility:**',
+  practical: '**Action — Delivery:**',
+  troubleshooting: '**Action — Revision:**',
+  scenario: '**Action — Judgment:**',
+  design: '**Action — Structure:**',
+};
 
 for (const summary of manifest.tracks) {
   assert(categoryIds.has(summary.category), `${summary.slug} references an unknown category`);
@@ -44,7 +59,16 @@ for (const summary of manifest.tracks) {
     assert(!/Implement a production-safe|has an intermittent .+ problem|Show the smallest useful example.+Show the smallest correct use/i.test(question.prompt), `${question.id} contains a vague or repeated prompt template`);
     assert(Array.isArray(question.skillsTested) && question.skillsTested.length > 0, `${question.id} needs skillsTested`);
     const answer = question.answer;
-    assert(answer && typeof answer.spokenAnswer === 'string' && answer.spokenAnswer.length >= 200, `${question.id} needs a spoken candidate answer`);
+    assert(answer && typeof answer.spokenAnswer === 'string', `${question.id} needs a spoken candidate answer`);
+    const spokenWords = wordCount(answer.spokenAnswer);
+    assert(spokenWords >= 300 && spokenWords <= 450, `${question.id} spoken answer must contain 300-450 words; found ${spokenWords}`);
+    assert(answer.spokenAnswer.includes(question.skillsTested[0]), `${question.id} spoken answer must mention ${question.skillsTested[0]}`);
+    assert(!allSpokenAnswers.has(answer.spokenAnswer), `Duplicate global spoken answer: ${question.id}`);
+    allSpokenAnswers.add(answer.spokenAnswer);
+    const requiredHeadings = summary.category === 'career'
+      ? ['**My answer:**', '**Situation and responsibility:**', careerKindHeadings[question.kind], '**Result:**', '**Reflection:**', '**Follow-up and caveat:**']
+      : ['**Direct answer:**', '**Mental model:**', '**Key ideas:**', technicalKindHeadings[question.kind], '**Production example:**', '**Depth and trade-off:**', '**Verification and caveat:**'];
+    assert(requiredHeadings.every((heading) => answer.spokenAnswer.includes(heading)), `${question.id} spoken answer has the wrong structure`);
     assert(answer && typeof answer.modelAnswer === 'string' && answer.modelAnswer.length >= 400, `${question.id} needs a detailed candidate answer`);
     assert((answer.modelAnswer.match(/\*\*[^*]+:\*\*/g) ?? []).length >= 4, `${question.id} candidate answer must be easy to scan`);
     assert(typeof answer.explanation === 'string' && answer.explanation.length >= 300, `${question.id} needs a detailed explanation`);
@@ -65,6 +89,7 @@ for (const summary of manifest.tracks) {
 const expectedQuestions = manifest.tracks.reduce((sum, track) => sum + track.questionCount, 0);
 assert(trackIds.size === manifest.tracks.length, 'Track slugs must be unique across the manifest');
 assert(allQuestionIds.size === expectedQuestions, `Expected ${expectedQuestions} unique questions`);
+assert(allSpokenAnswers.size === expectedQuestions, `Expected ${expectedQuestions} unique spoken answers`);
 process.stdout.write(`${JSON.stringify({ valid: true, tracks: trackIds.size, questions: allQuestionIds.size })}\n`);
 
 async function json(path) {
@@ -80,6 +105,10 @@ function unique(values, name) {
   const items = new Set(values);
   assert(items.size === values.length, `Duplicate ${name}`);
   return items;
+}
+
+function wordCount(value) {
+  return value.trim().split(/\s+/).length;
 }
 
 function assert(condition, message) {

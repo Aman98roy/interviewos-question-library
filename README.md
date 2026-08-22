@@ -20,7 +20,7 @@ npm run validate
 
 `generate` deterministically rebuilds the manifest and track files from the catalog in `scripts/generate.mjs` and the lesson bank in `scripts/lessons.mjs`. `validate` uses only Node.js and rejects malformed files, duplicate prompts or IDs, short/generic answers, missing scenario flows, invalid level mixes, and unsafe file paths.
 
-Each question has a question-specific candidate response plus a separate detailed explanation, production example, verification guidance, and memorable cue. Code examples are attached only when they match the question topic. A subject-matter reviewer should still approve provider-specific cloud behavior, security guidance, code, and cost claims before production publication.
+Each question has a unique, structured 2–3 minute `spokenAnswer` adapted to its level and question type, plus a separate detailed explanation, production example, verification guidance, and memorable cue. Technical answers use diagrams only where they clarify a real flow; behavioral answers use an evidence-and-reflection structure. Code examples are attached only when they match the question topic. A subject-matter reviewer should still approve provider-specific cloud behavior, security guidance, code, and cost claims before production publication.
 
 ## Publishing
 

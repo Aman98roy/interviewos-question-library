@@ -196,7 +196,7 @@ function question(item, entry, level, index) {
     prompt,
     skillsTested: [topic, item.category === 'career' ? careerSkillFor(kind) : skillFor(kind), `${capitalize(level)} reasoning`],
     answer: {
-      spokenAnswer: spokenAnswer(item, material, topic, kind, scenario),
+      spokenAnswer: spokenAnswer(item, material, topic, level, kind, focus, scenario),
       modelAnswer,
       explanation,
       keyPoints: [
@@ -239,13 +239,65 @@ function question(item, entry, level, index) {
   return result;
 }
 
-// One flowing first-person answer a candidate can say aloud, built from the same lesson material as the sectioned modelAnswer.
-function spokenAnswer(item, material, topic, kind, scenario) {
-  if (item.category === 'career') {
-    return `On **${topic}**, here's how I'd answer: ${material.example} That works because ${lowercaseFirst(material.teach)} As I deliver it, ${lowercaseFirst(material.operate)} If they probe further, I'd stay specific and honest about what was mine versus the team's rather than inflating my part, and close with **what I learned**.`;
-  }
+// A two-to-three-minute answer assembled from reviewed lesson facts. The shape changes with the prompt instead of
+// repeating one topic summary for every level and question kind.
+function spokenAnswer(item, material, topic, level, kind, focus, scenario) {
+  return item.category === 'career'
+    ? careerSpokenAnswer(material, topic, level, kind, focus)
+    : technicalSpokenAnswer(item, material, topic, level, kind, focus, scenario);
+}
+
+function technicalSpokenAnswer(item, material, topic, level, kind, focus, scenario) {
   const verify = verificationFor(kind, topic);
-  return `Here's how I'd say it in the interview. **${topic}:** ${material.teach}\n\n**In practice**, I would ${lowercaseFirst(material.operate)}\n\n**For a concrete case**, on ${scenario}, ${lowercaseFirst(material.example)}\n\n**To prove it works**, I'd do this: ${lowercaseFirst(verify)}. And the one limit I'd flag up front is my rule of thumb: **${material.memory}**`;
+  const direct = {
+    conceptual: `${topic} is best understood through the guarantee it provides and the boundary where that guarantee stops.`,
+    practical: `I would use ${topic} through the smallest production-safe configuration that meets the stated outcome.`,
+    troubleshooting: `I would diagnose the ${topic} failure from evidence along the request or data path, not by changing settings blindly.`,
+    scenario: `I would make the ${topic} decision conditionally, after its assumptions, failure behavior, and rollback are explicit.`,
+    design: `I would design ${topic} around a clear boundary, predictable failure behavior, and evidence that proves the result.`,
+  }[kind];
+  const section = {
+    conceptual: ['How it works', `I separate the label from the mechanism. First I state the guarantee ${topic} provides. Then I trace the inputs, decisions, and resulting behavior, including the boundary where that guarantee stops. Finally I connect it to an observable production signal. That makes the explanation testable instead of a list of product names.`],
+    practical: ['Implementation', `I begin with the smallest configuration that can meet the stated outcome, keep access and resource scope narrow, and make invalid input or unsupported states fail clearly. I then add the operational controls in the same change: ownership, useful telemetry, bounded resource use, and a recovery path. Each extra component must address a named requirement rather than anticipated future complexity.`],
+    troubleshooting: ['Diagnosis', `I start with the user-visible symptom and its timeline, then compare one failing path with one healthy path. I follow the request or data flow in order and inspect evidence at each boundary before changing configuration. Once one observation disproves a layer, I move to the next. I change one variable, reproduce the original symptom, and keep the evidence that confirms the cause.`],
+    scenario: ['Decision', `I would approve the direction only after making its assumptions explicit. I would confirm the workload shape, required guarantee, trust boundary, failure tolerance, recovery target, and cost ceiling. Then I would compare the proposal with the simplest credible alternative. The winning option is the one that meets those requirements with fewer failure modes, not the option with the longest feature list.`],
+    design: ['Design', `I would give ${topic} a clear boundary: defined inputs and outputs, one owner, explicit authorization, bounded resource use, observable failure, and a rehearsed recovery path. I would walk a successful request through the design, then repeat the walk for invalid input, overload, dependency failure, and rollback. That exposes hidden coupling before production traffic does.`],
+  }[kind];
+  const depth = {
+    basic: `I would keep the vocabulary concrete and use one small example plus one boundary case. That shows what ${topic} does and the difference between correct use and accidental success.`,
+    intermediate: `In production, I would connect mechanism to operations: ownership, constrained permissions, dependency failure, useful telemetry, and safe rollback. A design is incomplete if it describes only the successful path.`,
+    advanced: `For a senior-level decision, I would quantify latency, throughput, correctness, availability, security, recovery, and cost. I would identify what changes first at scale and the measured threshold for reconsidering the design.`,
+    scenario: `Because details are incomplete, I would state assumptions, choose a reversible starting point, and define evidence that invalidates it. If scale, failure, or security evidence changes, I would revise the design and rerun the checks.`,
+  }[level];
+  const counterexample = focus.startsWith('Teach the trade-off')
+    ? `\n\n**Counterexample:** Naming ${topic} without its guarantee, failure boundary, or proof is not understanding it. I would prefer a simpler alternative whenever it meets the same measured requirement.`
+    : '';
+  const diagram = material.spoken.diagram
+    ? `\n\n**Useful flow:**\n\n\`\`\`text\n${material.spoken.diagram}\n\`\`\``
+    : '';
+
+  return `**Direct answer:** ${direct} In ${item.title}, I would answer the requirement first, explain the mechanism, and state its operating limit clearly in production.\n\n**Mental model:** My shorthand is: **${material.spoken.mentalModel}** It keeps the boundary, guarantee, and operator visible instead of mistaking a service name for a complete design.\n\n**Key ideas:**\n\n- **Mechanism:** ${material.spoken.keyConcept}\n- **Operation:** ${material.spoken.operatingSequence}\n- **Proof:** I would verify it by ${lowercaseFirst(verify)}.\n\n**${section[0]}:** ${section[1]}${diagram}\n\n**Production example:** For ${scenario}, ${lowercaseFirst(material.example)} This names a concrete boundary and observable outcome rather than calling ${topic} “best practice.”\n\n**Depth and trade-off:** ${depth}${counterexample}\n\n**Verification and caveat:** I would test the intended path, invalid or unauthorized input, one dependency failure, and recovery while watching the relevant telemetry. **Critical caveat:** ${material.spoken.caveat} My final rule is **${material.spoken.tradeOff}**`;
+}
+
+function careerSpokenAnswer(material, topic, level, kind, focus) {
+  const [actionHeading, approach] = {
+    conceptual: ['Credibility', `I would explain why the structure is credible before giving the example. The interviewer needs enough context to understand the stakes, a clear statement of my responsibility, specific actions that were mine, an observable result, and honest reflection. I would keep background short so most of the time is spent on decisions and behavior.`],
+    practical: ['Delivery', `I would deliver the example directly, using “I” for my work and “we” for the team outcome. I would name the difficult choice, what I actually did, and what changed. I would not add invented numbers; a concrete observable result is stronger than a precise metric I cannot defend.`],
+    troubleshooting: ['Revision', `I would repair the vague answer without inventing detail. I would identify which part is missing—context, responsibility, personal action, trade-off, result, or learning—then add only evidence I can support. I would remove chronology that does not affect the decision and prepare for one specific follow-up about my contribution.`],
+    scenario: ['Judgment', `I would acknowledge the incomplete information, state the assumption I am making, and explain the people and business constraints before choosing. I would show how I communicated, which alternative I rejected, and why. The answer should demonstrate judgment without pretending there was one perfect response.`],
+    design: ['Structure', `I would use a flexible context-action-result-reflection structure rather than memorizing a script. Context and responsibility should be brief; personal actions, trade-offs, and collaboration should carry the answer. I would close with the result and what I would repeat or change now, then shorten or expand only in response to the interviewer.`],
+  }[kind];
+  const depth = {
+    basic: `I would keep this version straightforward: one honest example, one personal action, one visible outcome, and one lesson. Clear ownership matters more than impressive scope.`,
+    intermediate: `I would also make the decision process and collaboration visible. The interviewer should understand the competing concern, why I chose this action, how I involved others, and how I know the outcome was useful.`,
+    advanced: `At senior depth, I would surface ambiguity, competing priorities, influence without authority, and second-order impact. I would distinguish my contribution from the team's and explain what evidence would make me choose differently today.`,
+    scenario: `With incomplete facts, I would state assumptions and ask one clarifying question that could change the response. I would choose a defensible action, communicate its trade-off, and explain how I would adjust if new evidence appeared.`,
+  }[level];
+  const challenge = focus.startsWith('Challenge')
+    ? ` A polished claim is still weak if it cannot survive a specific follow-up, so I would include the detail that proves ownership and acknowledge any limit in the result.`
+    : '';
+
+  return `**My answer:** On ${topic}, I would use this honest example: “${material.example}” I would say it naturally rather than reciting labels, while keeping a deliberate structure.\n\n**Situation and responsibility:** ${material.teach} I would give only the context needed to understand the stakes, then state what I personally owned. My mental cue is: **${material.spoken.mentalModel}**\n\n**Action — ${actionHeading}:** ${approach} In this example, I would apply the following discipline: ${lowercaseFirst(material.spoken.operatingSequence)}\n\n**Result:** I would describe the observable result in the example and quantify it only when I have a defensible number. I would separate the immediate outcome from any durable improvement, giving the interviewer evidence rather than a broad claim about ${topic}.\n\n**Reflection:** ${depth}${challenge} I would close with what I learned, what I would repeat, and what I would change next time.\n\n**Follow-up and caveat:** I would expect questions about the rejected alternative, my exact contribution, and evidence for the result. I would answer consistently and never invent detail. The important limit is **${material.spoken.tradeOff}** A truthful story that survives probing is stronger than a dramatic one that does not.`;
 }
 
 function promptFor(item, material, topic, kind, focus, scenario) {
