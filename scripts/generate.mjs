@@ -150,17 +150,21 @@ const codeExampleTopics = {
 
 await mkdir(resolve(root, 'tracks'), { recursive: true });
 assert(Object.keys(lessons).length === tracks.length, 'Every track needs a lesson bank');
-for (const item of tracks) assert(lessons[item.slug]?.length === 10, `${item.slug} needs ten lessons`);
-for (const item of tracks) assert(item.topics.length === 10, `${item.slug} needs ten topics`);
+// One lesson per topic; each topic yields one question per blueprint round.
+const blueprintsFor = (item) => item.category === 'career' ? careerLevelBlueprints : levelBlueprints;
+const roundsPerTopic = (item) => Object.values(blueprintsFor(item)).reduce((sum, rounds) => sum + rounds.length, 0);
+const questionCountFor = (item) => item.topics.length * roundsPerTopic(item);
+for (const item of tracks) assert(lessons[item.slug]?.length === item.topics.length, `${item.slug} needs one lesson per topic`);
 
 await writeJson('manifest.json', {
   schemaVersion: 1,
   categories,
-  tracks: tracks.map(({ example: _example, ...item }) => ({ ...item, questionCount: 160, file: `tracks/${item.slug}.json` })),
+  tracks: tracks.map(({ examples: _examples, ...item }) => ({ ...item, questionCount: questionCountFor(item), file: `tracks/${item.slug}.json` })),
 });
 
+let generatedQuestions = 0;
 for (const item of tracks) {
-  const blueprints = item.category === 'career' ? careerLevelBlueprints : levelBlueprints;
+  const blueprints = blueprintsFor(item);
   const questions = Object.entries(blueprints).flatMap(([level, levelItems]) => {
     const entries = lessons[item.slug].flatMap((material, topicIndex) => levelItems.map(([kind, focus], round) => ({ material, topicIndex, kind, focus, round })));
     return entries
@@ -169,18 +173,21 @@ for (const item of tracks) {
       .map(({ question: itemQuestion }) => itemQuestion);
   });
   await writeJson(`tracks/${item.slug}.json`, { schemaVersion: 1, slug: item.slug, questions });
+  generatedQuestions += questions.length;
 }
 
-process.stdout.write(`Generated ${tracks.length} tracks and ${tracks.length * 160} subject-specific questions.\n`);
+process.stdout.write(`Generated ${tracks.length} tracks and ${generatedQuestions} subject-specific questions.\n`);
 
 function track(slug, title, category, summary, topics, example) {
-  return { slug, title, category, summary, topics, example };
+  // example is one scenario string or an array of scenarios rotated across topics.
+  return { slug, title, category, summary, topics, examples: Array.isArray(example) ? example : [example] };
 }
 
 function question(item, entry, level, index) {
   const { material, topicIndex, kind, focus } = entry;
   const topic = item.topics[topicIndex];
-  const prompt = promptFor(item, material, topic, kind, focus);
+  const scenario = item.examples[topicIndex % item.examples.length];
+  const prompt = promptFor(item, material, topic, kind, focus, scenario);
   const { explanation, modelAnswer } = answer(item, material, topic, level, kind, focus);
   const result = {
     id: `${item.slug}-${level}-${String(index + 1).padStart(2, '0')}`,
@@ -189,6 +196,7 @@ function question(item, entry, level, index) {
     prompt,
     skillsTested: [topic, item.category === 'career' ? careerSkillFor(kind) : skillFor(kind), `${capitalize(level)} reasoning`],
     answer: {
+      spokenAnswer: spokenAnswer(item, material, topic, kind, scenario),
       modelAnswer,
       explanation,
       keyPoints: [
@@ -221,7 +229,7 @@ function question(item, entry, level, index) {
     } : {
       title: `${topic}: requirement-to-proof flow`,
       steps: [
-        { label: 'Clarify', detail: `${item.example}: state workload, correctness, security, scale, and recovery requirements.` },
+        { label: 'Clarify', detail: `${capitalize(scenario)}: state workload, correctness, security, scale, and recovery requirements.` },
         { label: 'Choose', detail: firstSentence(material.teach) },
         { label: 'Protect', detail: firstSentence(material.operate) },
         { label: 'Prove', detail: 'Test success, overload, dependency failure, recovery, and the user-visible latency or correctness target.' },
@@ -231,30 +239,40 @@ function question(item, entry, level, index) {
   return result;
 }
 
-function promptFor(item, material, topic, kind, focus) {
+// One flowing first-person answer a candidate can say aloud, built from the same lesson material as the sectioned modelAnswer.
+function spokenAnswer(item, material, topic, kind, scenario) {
+  if (item.category === 'career') {
+    return `In the interview I'd answer it like this: ${material.example} That works because ${lowercaseFirst(material.teach)} As I deliver it, ${lowercaseFirst(material.operate)} If they probe further, I'd stay specific and honest about what was mine versus the team's rather than inflating my part, and close with what I learned.`;
+  }
+  const verify = verificationFor(kind, topic);
+  return `Here's how I'd say it in the interview: ${material.teach} In practice, I would ${lowercaseFirst(material.operate)} For a concrete case, on ${scenario}, ${lowercaseFirst(material.example)} I'd show it actually works by ${lowercaseFirst(verify)}, and the one limit I'd flag up front is captured by my rule of thumb: “${material.memory}”`;
+}
+
+function promptFor(item, material, topic, kind, focus, scenario) {
   const prompts = item.category === 'career' ? {
     conceptual: `What makes an interview answer about ${topic} clear, credible, and easy to verify? Use this example as a reference: ${material.example}`,
     practical: `Give a candidate-ready answer about ${topic} using this honest example: ${material.example}`,
-    scenario: `${capitalize(item.example)} faces a difficult question about ${topic}. Use this situation as evidence: ${material.example} How should the candidate respond?`,
+    scenario: `${capitalize(scenario)} faces a difficult question about ${topic}. Use this situation as evidence: ${material.example} How should the candidate respond?`,
     troubleshooting: `A candidate gives this ${topic} example, but it sounds vague under follow-up questions: ${material.example} How should they improve it without inventing details?`,
     design: `How should a candidate structure a concise, credible answer about ${topic}? Use this example to show the structure: ${material.example}`,
   } : {
     conceptual: `What is ${topic} in ${item.title}, how does it work, and why does it matter? Use this production case in your explanation: ${material.example}`,
-    practical: `How would you use ${item.title} to achieve the ${topic} outcome below for ${item.example}? Target outcome: ${material.example}`,
-    scenario: `Review this ${item.title} proposal for ${item.example}: ${material.example} Focusing on ${topic}, would you approve it, change it, or reject it?`,
-    troubleshooting: `In ${item.example}, this expected outcome fails intermittently in production: ${material.example} Focusing on ${topic}, how would you investigate without guessing?`,
-    design: `For ${item.example}, how would you design the part of the system concerned with ${topic} using ${item.title}? The target outcome is: ${material.example}`,
+    practical: `How would you use ${item.title} to achieve the ${topic} outcome below for ${scenario}? Target outcome: ${material.example}`,
+    scenario: `Review this ${item.title} proposal for ${scenario}: ${material.example} Focusing on ${topic}, would you approve it, change it, or reject it?`,
+    troubleshooting: `In ${scenario}, this expected outcome fails intermittently in production: ${material.example} Focusing on ${topic}, how would you investigate without guessing?`,
+    design: `For ${scenario}, how would you design the part of the system concerned with ${topic} using ${item.title}? The target outcome is: ${material.example}`,
   };
   return `${prompts[kind]} Your answer should ${lowercaseFirst(focus)}`;
 }
 
 function answer(item, material, topic, level, kind, focus) {
   if (item.category === 'career') return careerAnswer(item, material, topic, level, kind, focus);
+  const rule = firstSentence(material.operate);
   const depth = {
-    basic: `My rule of thumb is “${material.memory}” I would explain one limit instead of only naming ${topic}.`,
-    intermediate: 'Before shipping, I would make ownership, invalid input, dependency failure, security, observability, and recovery explicit.',
-    advanced: 'I would quantify latency, scale, correctness, security, and cost limits, compare the simplest credible alternative, and name the measured threshold that would change this design.',
-    scenario: 'I am assuming the stated workload fits current limits, the required correctness and security guarantees match the mechanism, and rollback is available. If measurements disprove an assumption, I would choose the simplest credible alternative and retest.',
+    basic: `My rule of thumb is “${material.memory}” I would explain one limit of ${topic} instead of only naming it.`,
+    intermediate: `Before shipping, I would make ${topic} ownership, invalid input, dependency failure, security, observability, and recovery explicit. Concretely: ${lowercaseFirst(rule)}`,
+    advanced: `For ${topic} at scale I would quantify latency, correctness, security, and cost limits, compare the simplest credible alternative, and name the measured threshold that changes this design. My check: ${lowercaseFirst(rule)}`,
+    scenario: `My assumptions: the workload fits current ${topic} limits, the required guarantees match the mechanism, and rollback is available. If a measurement disproves one, I take the simplest credible alternative and retest — verifying by ${lowercaseFirst(rule)}`,
   };
   const verification = verificationFor(kind, topic);
   const conceptualResponse = focus.startsWith('Teach the trade-off')
