@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "topic": "Kubernetes",
+  "questions": [
+    {
+      "id": "kubernetes-advanced-01",
+      "level": "advanced",
+      "category": "kubectl and API Server",
+      "question": "What happens inside Kubernetes when you run kubectl apply -f deployment.yaml?",
+      "answer": "**Direct answer:** kubectl reads the manifest and kubeconfig, discovers the API resource, and sends a create or patch request to the kube-apiserver. The API server authenticates the caller, checks authorization, runs admission and schema validation, then persists the desired state in etcd. Controllers observe the new Deployment and create a ReplicaSet and Pods; the scheduler assigns each pending Pod to a node; that node's kubelet uses the container runtime, network, and storage interfaces to start it.\n\n**In practice:** The components converge asynchronously through API watches. They do not form one long synchronous function call, and `kubectl` returning successfully means the desired state was accepted—not necessarily that the workload is already healthy.",
+      "explanation": "**Detailed explanation:** Kubernetes is a declarative control system. The API server is its front door and etcd is its durable source of truth. Controllers repeatedly compare desired state with observed state and create or update resources to close the gap. The scheduler selects nodes, while each kubelet turns an assigned Pod specification into running containers through CRI, CNI, and CSI integrations.\n\n**Why it matters:** During incidents, identify the last successful boundary. Authorization or admission errors appear before persistence; Pending Pods point toward scheduling or storage constraints; image and sandbox failures occur on the selected node; readiness failures can leave containers running while Services correctly withhold traffic.",
+      "example": "A team applies a three-replica web Deployment in the shop namespace. The API server accepts it, the Deployment controller creates a ReplicaSet, the ReplicaSet controller creates three Pods, the scheduler binds them to suitable nodes, and kubelets start them. If one node disappears, controllers notice the missing replicas and create replacements without anyone rerunning kubectl.",
+      "keyPoints": [
+        "**The API server is the front door:** clients and control-plane components read and write cluster state through it.",
+        "**etcd stores desired state:** controllers and schedulers react asynchronously through watches.",
+        "**Nodes converge locally:** kubelet coordinates runtime, networking, storage, probes, and status.",
+        "**Apply is not readiness:** command success means the desired object was accepted, so rollout status must be checked separately."
+      ],
+      "commonMistakes": [
+        "Assuming kubectl starts containers directly on worker nodes",
+        "Treating a successful apply response as proof that Pods are ready",
+        "Saying every component calls the next one directly instead of explaining API watches and reconciliation",
+        "Ignoring admission policies, scheduling constraints, image pulls, networking, and volume attachment as distinct failure boundaries"
+      ],
+      "visual": {
+        "title": "From command to running Pods",
+        "description": "Select each block to inspect the request, the component responsible, and a concrete signal you can verify.",
+        "layout": "sequence",
+        "groups": [
+          {
+            "title": "Local client",
+            "blocks": [
+              {
+                "id": "kubectl",
+                "title": "kubectl reads the manifest",
+                "summary": "Parses YAML, discovers the resource type, and prepares a create or patch request.",
+                "detail": "kubectl converts the YAML document into a Kubernetes object and uses API discovery to find the correct resource endpoint. Client-side apply computes a patch from the submitted object, the live object, and the last-applied configuration; --server-side delegates field ownership and merging to the API server.",
+                "example": "A Deployment with apiVersion apps/v1 maps to the deployments endpoint for the selected namespace.",
+                "callout": "kubectl apply -f deployment.yaml"
+              },
+              {
+                "id": "kubeconfig",
+                "title": "Context and credentials",
+                "summary": "Selects the cluster URL, certificate authority, identity, and namespace.",
+                "detail": "kubectl resolves configuration from --kubeconfig, KUBECONFIG, or the default kubeconfig file. The selected context links a cluster, user credentials, and an optional default namespace before opening a TLS connection.",
+                "example": "The production context can route the same manifest to https://api.prod.example and default it into the shop namespace.",
+                "callout": "context → cluster + user + namespace"
+              }
+            ]
+          },
+          {
+            "title": "Control plane",
+            "blocks": [
+              {
+                "id": "api-server",
+                "title": "API server receives the request",
+                "summary": "The cluster's HTTP front door handles the create or patch operation.",
+                "detail": "kube-apiserver exposes the Kubernetes REST API. It performs request decoding and coordinates the security, admission, validation, persistence, and watch behavior used by every other control-plane component.",
+                "example": "The client sends a PATCH to /apis/apps/v1/namespaces/shop/deployments/web for an existing Deployment.",
+                "callout": "HTTPS REST • JSON or Protobuf"
+              },
+              {
+                "id": "policy-pipeline",
+                "title": "Identity and admission",
+                "summary": "Authenticates the caller, authorizes the action, then mutates and validates the object.",
+                "detail": "Authentication establishes identity, RBAC or another authorizer decides whether that identity may perform the verb, mutating admission can add defaults or policy-controlled fields, and validating admission can reject unsafe state. Final schema validation prevents malformed resources from being stored.",
+                "example": "A policy webhook may reject a container that runs as root even when the caller has permission to create Deployments.",
+                "callout": "authenticate → authorize → admit"
+              },
+              {
+                "id": "etcd",
+                "title": "etcd stores desired state",
+                "summary": "Persists the accepted object and advances a revision observed by watchers.",
+                "detail": "After successful validation, the API server writes the canonical resource to etcd. etcd provides strongly consistent storage through Raft; Kubernetes components consume API-server watch streams rather than reading etcd directly.",
+                "example": "The stored Deployment says replicas: 3 even though no matching Pods may exist yet.",
+                "callout": "etcd v3 gRPC • MVCC • Raft"
+              },
+              {
+                "id": "controllers",
+                "title": "Controllers create child objects",
+                "summary": "Deployment and ReplicaSet controllers work toward the requested replica count.",
+                "detail": "The Deployment controller observes the new object and creates or updates a ReplicaSet. The ReplicaSet controller then creates Pod objects until the number matching its selector reaches the requested replica count. Every change is written back through the API server.",
+                "example": "A three-replica Deployment produces one ReplicaSet and three initially unscheduled Pod objects.",
+                "callout": "Deployment → ReplicaSet → Pods"
+              },
+              {
+                "id": "scheduler",
+                "title": "Scheduler binds each Pod",
+                "summary": "Filters unsuitable nodes, scores viable ones, and records the selected node.",
+                "detail": "kube-scheduler watches for Pods without spec.nodeName. It filters nodes using resources, affinity, taints, topology, ports, and volume constraints, scores the remaining candidates, and posts a binding through the API server.",
+                "example": "A Pod requesting a GPU is filtered away from ordinary nodes and bound to worker-gpu-2.",
+                "callout": "Pod.spec.nodeName = worker-gpu-2"
+              }
+            ]
+          },
+          {
+            "title": "Worker node",
+            "blocks": [
+              {
+                "id": "kubelet",
+                "title": "kubelet starts the Pod sync",
+                "summary": "Observes Pods assigned to its node and prepares their runtime dependencies.",
+                "detail": "The kubelet watches the API for Pods bound to its node. Its sync loop resolves Secrets and ConfigMaps, coordinates volumes, asks the runtime to create the Pod sandbox and containers, runs probes, and reports status back through the API server.",
+                "example": "The kubelet on worker-gpu-2 notices the binding and begins creating the assigned Pod without a direct scheduler-to-kubelet call.",
+                "callout": "watch Pods where spec.nodeName matches"
+              },
+              {
+                "id": "runtime-network-storage",
+                "title": "CRI, CNI, and CSI execute",
+                "summary": "Pulls images, starts containers, configures networking, and mounts storage.",
+                "detail": "The kubelet uses CRI over gRPC to ask containerd or CRI-O to create the sandbox and containers. The runtime invokes the configured CNI plugin for the Pod IP and routes, while kubelet coordinates CSI drivers for requested persistent volumes. The low-level OCI runtime finally creates container processes.",
+                "example": "containerd pulls the web image, the CNI plugin assigns 10.244.2.17, and the CSI driver mounts the claims before the application starts.",
+                "callout": "CRI + CNI + CSI → OCI runtime"
+              },
+              {
+                "id": "running-pods",
+                "title": "Pods become ready",
+                "summary": "Probes and status updates decide whether Services may send traffic.",
+                "detail": "Running containers are not automatically ready. The kubelet executes configured startup, readiness, and liveness probes and publishes Pod status. Endpoint controllers use readiness when selecting Service backends, while higher-level controllers continue reconciling failures and replica count changes.",
+                "example": "The web process starts immediately, but its Pod receives Service traffic only after the readiness endpoint succeeds.",
+                "callout": "desired state ⇄ observed state"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

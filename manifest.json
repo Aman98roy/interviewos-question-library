@@ -7,6 +7,11 @@
       "description": "Public-cloud architecture, operations, security, reliability, and cost trade-offs."
     },
     {
+      "slug": "devops",
+      "title": "DevOps",
+      "description": "Container orchestration, delivery systems, platform operations, reliability, and production diagnostics."
+    },
+    {
       "slug": "frontend",
       "title": "Frontend",
       "description": "Browser application architecture, rendering, state, accessibility, performance, and testing."
@@ -74,6 +79,21 @@
         "Cost and Billing"
       ],
       "file": "tracks/gcp.json"
+    },
+    {
+      "slug": "kubernetes",
+      "title": "Kubernetes",
+      "category": "devops",
+      "summary": "Understand Kubernetes control-plane behavior, workload scheduling, networking, storage, and production operations.",
+      "topics": [
+        "kubectl and API Server",
+        "Controllers and Scheduling",
+        "Pods and Workloads",
+        "Container Runtime",
+        "Networking and Storage",
+        "Reliability and Troubleshooting"
+      ],
+      "file": "tracks/kubernetes.json"
     },
     {
       "slug": "react",

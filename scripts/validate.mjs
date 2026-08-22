@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { validateVisual } from './validate-visual.mjs';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = await json('manifest.json');
 const levels = new Set(['basic', 'intermediate', 'advanced', 'scenario']);
@@ -38,6 +40,7 @@ for (const summary of manifest.tracks) {
       assert(Array.isArray(question.flow) && question.flow.length >= 2, `${question.id} flow must have at least two steps`);
       question.flow.forEach((step) => requiredText(step, `${question.id} flow step`));
     }
+    if (question.visual) validateVisual(question.visual, `${question.id} visual`);
   }
 }
 
