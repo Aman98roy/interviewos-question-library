@@ -5,6 +5,16 @@
       "slug": "cloud",
       "title": "Cloud",
       "description": "Public-cloud architecture, operations, security, reliability, and cost trade-offs."
+    },
+    {
+      "slug": "frontend",
+      "title": "Frontend",
+      "description": "Browser application architecture, rendering, state, accessibility, performance, and testing."
+    },
+    {
+      "slug": "backend",
+      "title": "Backend",
+      "description": "Server application design, APIs, data access, security, reliability, and operations."
     }
   ],
   "tracks": [
@@ -64,6 +74,44 @@
         "Cost and Billing"
       ],
       "file": "tracks/gcp.json"
+    },
+    {
+      "slug": "react",
+      "title": "React",
+      "category": "frontend",
+      "summary": "Build accessible, testable, and performant React applications with predictable state and rendering.",
+      "topics": [
+        "Components and JSX",
+        "Props and State",
+        "Hooks",
+        "Rendering and Reconciliation",
+        "Forms",
+        "Context",
+        "Performance",
+        "Testing",
+        "Accessibility",
+        "Application Architecture"
+      ],
+      "file": "tracks/react.json"
+    },
+    {
+      "slug": "spring-boot",
+      "title": "Spring Boot",
+      "category": "backend",
+      "summary": "Design secure, maintainable, and observable Spring Boot services for production workloads.",
+      "topics": [
+        "Dependency Injection",
+        "Configuration",
+        "REST APIs",
+        "Data JPA",
+        "Transactions",
+        "Security",
+        "Validation and Error Handling",
+        "Testing",
+        "Observability",
+        "Performance and Deployment"
+      ],
+      "file": "tracks/spring-boot.json"
     }
   ]
 }

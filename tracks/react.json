@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "topic": "React",
+  "questions": [
+    {
+      "id": "react-basic-01",
+      "level": "basic",
+      "category": "Components and JSX",
+      "question": "What is a React component, and what rules should it follow when rendering JSX?",
+      "answer": "**Direct answer:** A React component is a function that receives props and returns a description of UI as JSX. Rendering should stay pure: the same props, state, and context should produce the same output without changing external data.\n\n**In practice:** Keep side effects in event handlers or effects, give repeated elements stable keys, and split components by responsibility rather than by arbitrary file size.",
+      "explanation": "**Detailed explanation:** JSX is syntax transformed into React element objects; it is not an HTML string. Component names begin with a capital letter, expressions use braces, and one rendered tree must have a single root such as a fragment.\n\n**Why it matters:** Pure rendering lets React pause, repeat, or discard work safely during reconciliation and concurrent rendering.",
+      "example": "A ProductPrice component receives amount and currency as props and returns formatted markup without fetching data or mutating the product object during render.",
+      "keyPoints": [
+        "**Components describe UI from inputs.**",
+        "**Rendering must remain pure.**",
+        "**JSX becomes React elements, not HTML strings.**"
+      ],
+      "commonMistakes": [
+        "Calling an API or changing global state during render",
+        "Using lowercase names for custom components",
+        "Splitting every small element into an unnecessary component"
+      ]
+    },
+    {
+      "id": "react-basic-02",
+      "level": "basic",
+      "category": "Props and State",
+      "question": "What is the difference between props and state in React?",
+      "answer": "**Direct answer:** Props are read-only inputs supplied by a parent. State is component-owned memory that changes through a state setter and causes React to schedule another render.\n\n**In practice:** Store only data that changes over time and cannot be calculated from current props or state. Lift shared state to the nearest common owner.",
+      "explanation": "**Detailed explanation:** React treats each render as a snapshot. Calling a setter requests a future render; it does not rewrite the variable in the already-running event handler. Objects and arrays must be replaced rather than mutated so React can observe the new value.\n\n**Why it matters:** Duplicate or mutated state creates stale UI and synchronization bugs.",
+      "example": "A checkout receives product details through props and owns the selected quantity in state; the total price is calculated during render instead of stored separately.",
+      "keyPoints": [
+        "**Props come from the parent and are read-only.**",
+        "**State changes through setters.**",
+        "**Derived values usually should not be state.**"
+      ],
+      "commonMistakes": [
+        "Mutating an object already stored in state",
+        "Copying props into state without a synchronization reason",
+        "Expecting a setter to change the current render immediately"
+      ]
+    },
+    {
+      "id": "react-basic-03",
+      "level": "basic",
+      "category": "Hooks",
+      "question": "What are React Hooks, and why must they be called in the same order on every render?",
+      "answer": "**Direct answer:** Hooks let function components use React features such as state, context, refs, and effects. Call Hooks only at the top level of React components or custom Hooks so React can match each call with its stored value by position.\n\n**In practice:** Put conditions inside a Hook or component boundary rather than around the Hook call.",
+      "explanation": "**Detailed explanation:** React associates Hook state with the order of calls during a component render. A conditional, loop, nested callback, or early return that changes that order can connect the wrong state to later calls. Custom Hooks reuse stateful behavior while each component invocation keeps independent state.\n\n**Why it matters:** The Rules of Hooks make state tracking deterministic without classes or manual registration.",
+      "example": "A useOnlineStatus custom Hook subscribes to browser online events in an effect and returns a boolean; several components can call it without sharing component state.",
+      "keyPoints": [
+        "**Hook order must be stable.**",
+        "**Custom Hooks reuse behavior, not state instances.**",
+        "**Only React components and custom Hooks call Hooks.**"
+      ],
+      "commonMistakes": [
+        "Calling useState inside an if statement",
+        "Calling a Hook from a regular utility function",
+        "Assuming two components using one custom Hook share state"
+      ]
+    },
+    {
+      "id": "react-basic-04",
+      "level": "basic",
+      "category": "Rendering and Reconciliation",
+      "question": "Why does React need keys when rendering a list?",
+      "answer": "**Direct answer:** A key gives each sibling a stable identity so React can match items between renders when entries are inserted, removed, or reordered. Use a unique value from the data, such as a database ID.\n\n**In practice:** Keys need to be unique only among siblings, but they must stay stable for the lifetime of that item.",
+      "explanation": "**Detailed explanation:** During reconciliation, React compares the previous and next element trees. Stable keys allow it to preserve the correct component state and DOM node for each logical item. Array indexes are safe only for truly static lists that never reorder or delete entries.\n\n**Why it matters:** Unstable keys can move typed input, focus, or local component state to the wrong row.",
+      "example": "A draggable task list uses task.id as the key, so reordering tasks preserves each row's editing state and focused control.",
+      "keyPoints": [
+        "**Keys identify siblings across renders.**",
+        "**Use stable data IDs.**",
+        "**Keys are not passed as ordinary props.**"
+      ],
+      "commonMistakes": [
+        "Using Math.random() as a key",
+        "Using the array index for a reorderable list",
+        "Expecting the child component to receive key in props"
+      ]
+    },
+    {
+      "id": "react-intermediate-01",
+      "level": "intermediate",
+      "category": "Hooks",
+      "question": "When should you use useEffect, and when should you avoid it?",
+      "answer": "**Direct answer:** Use an effect to synchronize a component with an external system after React commits UI—for example a subscription, browser API, timer, or imperative third-party widget. Do not use it to calculate render data or handle a user action that can happen directly in an event handler.\n\n**In practice:** Declare every reactive dependency and return cleanup for subscriptions or in-flight work.",
+      "explanation": "**Detailed explanation:** An effect runs after commit and may run again whenever a dependency changes. In development Strict Mode, React deliberately performs an extra setup and cleanup cycle to expose unsafe synchronization. Derived data belongs in render, while expensive pure calculations may use memoization.\n\n**Why it matters:** Unnecessary effects create extra renders, races, stale closures, and hard-to-follow data flow.",
+      "example": "A chat room effect opens a connection for the current roomId and returns a cleanup function that closes the old connection before roomId changes.",
+      "keyPoints": [
+        "**Effects synchronize with external systems.**",
+        "**Dependencies describe every reactive value used.**",
+        "**Cleanup reverses setup.**"
+      ],
+      "commonMistakes": [
+        "Suppressing the dependency lint rule to hide a stale closure",
+        "Using an effect to derive one state value from another",
+        "Forgetting cleanup for listeners, timers, or requests"
+      ]
+    },
+    {
+      "id": "react-intermediate-02",
+      "level": "intermediate",
+      "category": "Forms",
+      "question": "How would you design a React form with validation and a good submission experience?",
+      "answer": "**Direct answer:** Use semantic form controls and labels, keep only necessary editable values in controlled state or use native FormData, validate at the client for quick feedback and again on the server for trust, and expose pending, success, and error states.\n\n**In practice:** Disable only unsafe duplicate submission, focus the first invalid field, and preserve user input after a recoverable server error.",
+      "explanation": "**Detailed explanation:** Controlled inputs make React state the source of truth, while uncontrolled inputs let the DOM hold current values. Either approach can be correct. Validation errors must be associated with fields through accessible descriptions and should not depend on color alone.\n\n**Why it matters:** Client validation improves usability but can be bypassed, so authorization and validation remain mandatory at the server boundary.",
+      "example": "A registration form validates email format locally, submits FormData, displays the server's field error beside the input, and moves focus to an error summary.",
+      "keyPoints": [
+        "**Use labels and semantic controls.**",
+        "**Validate again on the server.**",
+        "**Preserve input and announce errors accessibly.**"
+      ],
+      "commonMistakes": [
+        "Treating client validation as a security boundary",
+        "Clearing the whole form after a server error",
+        "Using placeholder text instead of a label"
+      ]
+    },
+    {
+      "id": "react-intermediate-03",
+      "level": "intermediate",
+      "category": "Context",
+      "question": "When is React Context appropriate, and what performance problems can it create?",
+      "answer": "**Direct answer:** Context is appropriate for values many descendants need, such as theme, locale, authenticated user, or a scoped service. Every consumer can render when the provider value identity changes, so keep providers focused and stabilize or split frequently changing values.\n\n**In practice:** Prefer ordinary props for local relationships because they make dependencies explicit.",
+      "explanation": "**Detailed explanation:** Context avoids manually forwarding a value through intermediate components, but it does not automatically manage server state or prevent renders. A new object created for provider value on every render is a new identity even when its contents look equal.\n\n**Why it matters:** One global context containing unrelated fast-changing state creates broad updates and tight coupling.",
+      "example": "An application uses separate providers for stable authentication data and frequently changing notifications, preventing a notification update from rerendering every auth consumer.",
+      "keyPoints": [
+        "**Context shares cross-cutting values.**",
+        "**Provider value identity controls consumer updates.**",
+        "**Split contexts by change frequency and responsibility.**"
+      ],
+      "commonMistakes": [
+        "Putting the entire application state in one context",
+        "Creating a fresh provider object without need",
+        "Using context where passing one prop is clearer"
+      ]
+    },
+    {
+      "id": "react-intermediate-04",
+      "level": "intermediate",
+      "category": "Testing",
+      "question": "How should React components be tested without coupling tests to implementation details?",
+      "answer": "**Direct answer:** Test observable behavior through the same roles, labels, text, and interactions a user sees. Render the component with realistic dependencies, perform an action, and assert the resulting UI or request. Reserve direct unit tests for pure business functions.\n\n**In practice:** Prefer role-based queries and a small number of integration tests over snapshots of large markup trees.",
+      "explanation": "**Detailed explanation:** A resilient test does not depend on internal state, private functions, or CSS structure. Mock only slow or uncontrolled boundaries such as the network, clock, or browser capability. Await asynchronous UI changes instead of inserting arbitrary sleeps.\n\n**Why it matters:** Behavior-focused tests survive refactoring while still catching broken user flows and accessibility names.",
+      "example": "A login test finds inputs by label, submits credentials, mocks the HTTP boundary, and verifies that an invalid response appears as an accessible alert.",
+      "keyPoints": [
+        "**Test behavior through the rendered interface.**",
+        "**Mock boundaries, not component internals.**",
+        "**Prefer accessible role and label queries.**"
+      ],
+      "commonMistakes": [
+        "Asserting internal state values",
+        "Using broad snapshots as the only coverage",
+        "Adding fixed delays for asynchronous behavior"
+      ]
+    },
+    {
+      "id": "react-advanced-01",
+      "level": "advanced",
+      "category": "Performance",
+      "question": "How would you diagnose and improve a slow React screen without adding unnecessary memoization?",
+      "answer": "**Direct answer:** Measure the user-visible delay first with browser performance tools and the React Profiler. Determine whether time is spent in network work, JavaScript, React rendering, layout, or painting; then fix the dominant cause with smaller state boundaries, list virtualization, code splitting, caching, or selective memoization.\n\n**In practice:** Compare before and after traces on representative devices and data sizes.",
+      "explanation": "**Detailed explanation:** React.memo, useMemo, and useCallback are performance tools, not correctness tools. They add comparisons and dependency maintenance and do nothing when props always change. Moving state closer to where it is used often prevents more work with less complexity.\n\n**Why it matters:** Optimizing without a profile can make code harder to maintain while leaving network, layout, or oversized list bottlenecks untouched.",
+      "example": "A profiler shows a 5,000-row table dominating updates; virtualizing visible rows and localizing selection state removes most work before any callback memoization is added.",
+      "keyPoints": [
+        "**Profile before optimizing.**",
+        "**Fix the largest measured bottleneck.**",
+        "**Memoize only when stable inputs avoid meaningful work.**"
+      ],
+      "commonMistakes": [
+        "Wrapping every value and callback in memoization",
+        "Ignoring network and layout time",
+        "Testing performance only with tiny development data"
+      ]
+    },
+    {
+      "id": "react-advanced-02",
+      "level": "advanced",
+      "category": "Application Architecture",
+      "question": "How would you structure state and data flow in a large React application?",
+      "answer": "**Direct answer:** Separate server-owned data from temporary UI state, keep state near the components that own it, express domain operations through clear feature boundaries, and use a routing or data library only where its lifecycle solves a real problem.\n\n**In practice:** Organize by product feature, define loading and error behavior at boundaries, and avoid a universal global store.",
+      "explanation": "**Detailed explanation:** Server data has caching, freshness, mutation, and retry concerns; local UI state has interaction and presentation concerns. Mixing both into one store makes invalidation and ownership unclear. Reducers help when several events transition one related state machine, not merely because the screen is large.\n\n**Why it matters:** Clear ownership reduces synchronization effects and makes each feature easier to test, delete, or change.",
+      "example": "An orders feature uses a query cache for server records, URL parameters for shareable filters, component state for an open row, and a reducer only for the multi-step refund workflow.",
+      "keyPoints": [
+        "**Separate server data from local UI state.**",
+        "**Place state at the narrowest shared owner.**",
+        "**Choose tools from lifecycle needs.**"
+      ],
+      "commonMistakes": [
+        "Putting every value in a global store",
+        "Duplicating cached server records into component state",
+        "Using effects to synchronize multiple sources of truth"
+      ]
+    },
+    {
+      "id": "react-scenario-01",
+      "level": "scenario",
+      "category": "Accessibility",
+      "question": "A custom React modal looks correct but keyboard and screen-reader users cannot operate it. How would you fix it?",
+      "answer": "**Direct answer:** Use the native dialog element or an established accessible dialog primitive, give it an accessible name, move focus inside when opened, keep focus within it, close on Escape where appropriate, make the background unavailable, and restore focus to the trigger on close.\n\n**In practice:** Test with keyboard navigation, browser accessibility inspection, automated checks, and at least one real screen reader.",
+      "explanation": "**Detailed explanation:** A visual overlay is not automatically a modal. Assistive technology needs dialog semantics and a name, while keyboard users need predictable focus order and restoration. Focus trapping must still allow all controls and browser behavior needed by the dialog.\n\n**Why it matters:** Hand-written focus code has many edge cases, so a native or mature primitive is safer than a collection of key handlers.",
+      "example": "A delete-confirmation dialog focuses its heading or first action, keeps Tab within two buttons, announces validation errors, and restores focus to the original Delete button after closing.",
+      "flow": [
+        "Open from a real button and save the trigger element",
+        "Expose dialog semantics, name, and modal behavior",
+        "Manage initial focus, Tab movement, Escape, and errors",
+        "Close and restore focus, then test with assistive technology"
+      ],
+      "keyPoints": [
+        "**Semantics and focus are both required.**",
+        "**Restore focus after closing.**",
+        "**Prefer a proven accessible primitive.**"
+      ],
+      "commonMistakes": [
+        "Using a clickable div as the dialog trigger",
+        "Hiding visible content without moving focus",
+        "Testing only with a mouse"
+      ]
+    },
+    {
+      "id": "react-scenario-02",
+      "level": "scenario",
+      "category": "Rendering and Reconciliation",
+      "question": "A search page shows stale results when users type quickly. How would you diagnose and fix it?",
+      "answer": "**Direct answer:** Confirm whether older requests complete after newer ones. Tie each request to the current query, cancel obsolete work with AbortController or let a query library discard stale results, debounce only when it improves request volume, and keep loading and empty states tied to the active query.\n\n**In practice:** Reproduce with network throttling and test rapid input, deletion, navigation, and failed requests.",
+      "explanation": "**Detailed explanation:** This is usually an asynchronous race rather than a React rendering defect. Each effect or event handler closes over the query from its render, but network responses can arrive in any order. Cleanup prevents an obsolete response from updating current state.\n\n**Why it matters:** Debouncing alone reduces calls but does not guarantee response order, so cancellation or stale-response protection is still required.",
+      "example": "A user types cat and then cattle; the cat response arrives last. The cleanup aborts the cat request, so only the cattle result can update the visible list.",
+      "flow": [
+        "Reproduce the race with throttled and reordered responses",
+        "Associate request lifetime with the active query",
+        "Cancel or ignore every obsolete response",
+        "Test loading, empty, error, and navigation states"
+      ],
+      "keyPoints": [
+        "**Network completion order is not request order.**",
+        "**Cleanup obsolete asynchronous work.**",
+        "**Test races under realistic latency.**"
+      ],
+      "commonMistakes": [
+        "Using a fixed timeout as the only fix",
+        "Assuming debounce prevents stale responses",
+        "Showing a loading state for an obsolete query"
+      ]
+    }
+  ]
+}

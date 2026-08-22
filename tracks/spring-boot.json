@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "topic": "Spring Boot",
+  "questions": [
+    {
+      "id": "spring-boot-basic-01",
+      "level": "basic",
+      "category": "Dependency Injection",
+      "question": "What problem does dependency injection solve in a Spring Boot application?",
+      "answer": "**Direct answer:** Dependency injection gives an object the collaborators it needs instead of letting it construct or locate them itself. Spring creates managed beans, resolves their dependencies, and controls their lifecycle.\n\n**In practice:** Prefer constructor injection because dependencies are explicit, required fields can be final, and the class remains easy to instantiate in a test.",
+      "explanation": "**Detailed explanation:** Spring scans configuration and component definitions to build an application context. A bean should usually express one responsibility and depend on abstractions only where multiple meaningful implementations exist. Constructor injection exposes circular dependencies immediately instead of hiding them.\n\n**Why it matters:** Explicit dependencies reduce coupling and make application behavior easier to test and reason about.",
+      "example": "An OrderService receives PaymentGateway and OrderRepository through its constructor, while a configuration class chooses the production gateway implementation.",
+      "keyPoints": [
+        "**Spring manages bean creation and lifecycle.**",
+        "**Constructor injection makes requirements explicit.**",
+        "**A dependency should not be fetched from global state.**"
+      ],
+      "commonMistakes": [
+        "Using field injection everywhere",
+        "Creating managed dependencies manually with new",
+        "Adding an interface when only one stable implementation exists"
+      ]
+    },
+    {
+      "id": "spring-boot-basic-02",
+      "level": "basic",
+      "category": "Configuration",
+      "question": "How does Spring Boot auto-configuration work, and how should application settings be supplied?",
+      "answer": "**Direct answer:** Spring Boot auto-configuration creates common beans when relevant classes and settings are present and when the application has not defined its own replacement. Supply environment-specific settings through properties, YAML, environment variables, or an external secret system.\n\n**In practice:** Bind related settings to validated @ConfigurationProperties classes instead of scattering @Value strings.",
+      "explanation": "**Detailed explanation:** Conditional configuration checks the classpath, existing beans, and property values. Starter dependencies bring compatible libraries and their usual configuration together. Property sources have an override order, so operators can change deployment settings without rebuilding the application.\n\n**Why it matters:** Auto-configuration is visible and replaceable; enabling debug condition reports helps explain why a bean was or was not created.",
+      "example": "A MailProperties record validates host, port, and sender at startup, while the production password comes from a secret-mounted environment variable.",
+      "keyPoints": [
+        "**Auto-configuration is conditional.**",
+        "**Application beans can replace defaults.**",
+        "**Typed configuration should be validated at startup.**"
+      ],
+      "commonMistakes": [
+        "Committing production passwords to application.yml",
+        "Using many unrelated @Value fields",
+        "Assuming auto-configuration cannot be inspected or overridden"
+      ]
+    },
+    {
+      "id": "spring-boot-basic-03",
+      "level": "basic",
+      "category": "REST APIs",
+      "question": "How would you design a clear REST endpoint in Spring Boot?",
+      "answer": "**Direct answer:** Model the resource with a stable URL, use the HTTP method that matches the action, accept a dedicated request DTO, validate it, return an explicit response DTO and status code, and keep business logic outside the controller.\n\n**In practice:** Controllers translate HTTP concerns; application services enforce use cases; repositories handle persistence.",
+      "explanation": "**Detailed explanation:** @RestController serializes returned values through message converters, while mapping annotations bind paths, queries, headers, and bodies. DTOs prevent persistence entities from becoming accidental public contracts and allow validation and versioning to evolve independently.\n\n**Why it matters:** Correct status codes, content types, error shapes, and idempotency rules make an API predictable for clients.",
+      "example": "POST /orders validates CreateOrderRequest, calls an order service, and returns 201 Created with a Location header and an OrderResponse rather than the JPA entity.",
+      "keyPoints": [
+        "**Controllers stay thin.**",
+        "**DTOs define the public contract.**",
+        "**HTTP methods and status codes carry meaning.**"
+      ],
+      "commonMistakes": [
+        "Returning JPA entities directly",
+        "Putting transaction-heavy business logic in controllers",
+        "Returning HTTP 200 for every outcome"
+      ]
+    },
+    {
+      "id": "spring-boot-basic-04",
+      "level": "basic",
+      "category": "Data JPA",
+      "question": "What does Spring Data JPA provide, and what does it not remove the need to understand?",
+      "answer": "**Direct answer:** Spring Data JPA supplies repository implementations, query derivation, pagination, and integration with the JPA EntityManager. It does not remove the need to understand SQL, transactions, entity state, fetch plans, indexes, locking, or database constraints.\n\n**In practice:** Inspect generated SQL and measure real queries before assuming a repository method is efficient.",
+      "explanation": "**Detailed explanation:** JPA maps objects to relational rows and tracks managed entity changes within a persistence context. Relationships may load lazily or eagerly, and a simple loop can trigger many hidden queries. Database constraints remain the final protection for uniqueness and referential integrity.\n\n**Why it matters:** Abstraction makes common persistence concise but can hide expensive access patterns until production data grows.",
+      "example": "An order-list query uses a projection for summary fields and pagination instead of loading every order entity and lazily fetching each customer's details.",
+      "keyPoints": [
+        "**Repositories reduce persistence boilerplate.**",
+        "**Generated SQL still determines performance.**",
+        "**Database constraints protect invariants.**"
+      ],
+      "commonMistakes": [
+        "Using findAll on an unbounded production table",
+        "Ignoring N+1 queries",
+        "Treating entities as API response models"
+      ]
+    },
+    {
+      "id": "spring-boot-intermediate-01",
+      "level": "intermediate",
+      "category": "Transactions",
+      "question": "How does @Transactional work, and what common boundary mistakes cause lost consistency?",
+      "answer": "**Direct answer:** @Transactional defines a unit of database work that commits on success and rolls back on configured failures. Spring usually applies it through a proxy, so place transaction boundaries on public application-service methods called through the managed bean.\n\n**In practice:** Keep transactions short, avoid remote calls inside them, and choose isolation or locking from the actual concurrency invariant.",
+      "explanation": "**Detailed explanation:** The transaction binds persistence operations to the current thread and EntityManager. A call from one method to another method on the same object bypasses the proxy, so the inner annotation may not apply. Checked-exception rollback also differs from unchecked exceptions unless configured.\n\n**Why it matters:** A transaction protects database work, not an external payment, message, or HTTP call; those require idempotency and patterns such as an outbox.",
+      "example": "Creating an order and its line items occurs in one transaction, while a committed outbox record triggers payment processing after the database transaction succeeds.",
+      "keyPoints": [
+        "**Transactions belong around business use cases.**",
+        "**Proxy invocation affects annotation behavior.**",
+        "**External side effects need separate reliability patterns.**"
+      ],
+      "commonMistakes": [
+        "Expecting self-invoked @Transactional methods to start a new boundary",
+        "Holding a database transaction open during an HTTP call",
+        "Assuming every checked exception rolls back automatically"
+      ]
+    },
+    {
+      "id": "spring-boot-intermediate-02",
+      "level": "intermediate",
+      "category": "Security",
+      "question": "How would you secure a Spring Boot REST API with Spring Security?",
+      "answer": "**Direct answer:** Configure a SecurityFilterChain that authenticates trusted credentials, authorizes every route with deny-by-default rules, validates method-level ownership where needed, and returns consistent 401 and 403 responses. Hash passwords with an adaptive algorithm and protect browser sessions from CSRF.\n\n**In practice:** Keep signing keys and client secrets outside source control and grant services the least privilege they need.",
+      "explanation": "**Detailed explanation:** Authentication establishes the principal; authorization evaluates whether that principal may perform an action. URL rules are useful at the HTTP boundary, but object-level checks belong near the business operation because knowing an ID is not permission to access it.\n\n**Why it matters:** Stateless bearer-token APIs and cookie-based browser applications have different CSRF and session requirements, so security configuration must match the client model.",
+      "example": "A user may call GET /orders/{id} only when the service verifies that the order belongs to the current account, while support access requires a separately audited role.",
+      "keyPoints": [
+        "**Authenticate identity, then authorize each action.**",
+        "**Deny access unless explicitly allowed.**",
+        "**Enforce ownership near the business operation.**"
+      ],
+      "commonMistakes": [
+        "Disabling CSRF for a cookie-authenticated browser application without analysis",
+        "Trusting a resource ID as proof of ownership",
+        "Logging tokens, passwords, or secret headers"
+      ]
+    },
+    {
+      "id": "spring-boot-intermediate-03",
+      "level": "intermediate",
+      "category": "Validation and Error Handling",
+      "question": "How would you implement validation and consistent API errors in Spring Boot?",
+      "answer": "**Direct answer:** Put structural input rules on request DTOs with Jakarta Validation, trigger them with @Valid, enforce business invariants in the application service, and translate known exceptions through @RestControllerAdvice into a stable error contract.\n\n**In practice:** Include a safe code, message, field errors, and correlation ID without exposing stack traces or internal database details.",
+      "explanation": "**Detailed explanation:** DTO validation handles facts such as required fields and string ranges. Rules requiring database state, authorization, or multiple aggregates belong in the service. A global exception handler prevents each controller from inventing a different response and maps unexpected failures to a sanitized 500 response.\n\n**Why it matters:** Predictable errors help clients recover while keeping implementation and security details private.",
+      "example": "An invalid email returns 400 with a field error, a duplicate account returns 409 with code account_exists, and an unexpected SQL failure returns a generic 500 plus a trace ID.",
+      "keyPoints": [
+        "**Validate DTO shape at the boundary.**",
+        "**Enforce business rules in the service.**",
+        "**Return stable, sanitized error contracts.**"
+      ],
+      "commonMistakes": [
+        "Returning exception messages directly to clients",
+        "Putting database-dependent validation in annotations",
+        "Using one HTTP status for every error"
+      ]
+    },
+    {
+      "id": "spring-boot-intermediate-04",
+      "level": "intermediate",
+      "category": "Testing",
+      "question": "What testing layers would you use for a Spring Boot service?",
+      "answer": "**Direct answer:** Use fast unit tests for pure domain and service logic, focused slice tests such as @WebMvcTest or @DataJpaTest for framework boundaries, and a smaller number of integration tests with real infrastructure for migrations, queries, security, and complete request flows.\n\n**In practice:** Mock only collaborators outside the subject and use a real database engine when database behavior matters.",
+      "explanation": "**Detailed explanation:** @SpringBootTest loads most of the application and is valuable for wiring and end-to-end module behavior, but using it for every method makes feedback slow and failures vague. Repository tests against an unlike in-memory database can miss SQL dialect, constraint, and transaction differences.\n\n**Why it matters:** Each test should fail for a clear reason and prove behavior at the cheapest realistic boundary.",
+      "example": "A pricing service has plain JUnit tests, its controller has a security-aware MVC slice test, and order persistence runs against a containerized production-compatible database.",
+      "keyPoints": [
+        "**Use the smallest test boundary that proves the behavior.**",
+        "**Test database-specific behavior on a compatible database.**",
+        "**Keep a few full-context wiring checks.**"
+      ],
+      "commonMistakes": [
+        "Starting the entire Spring context for every unit test",
+        "Mocking the repository in tests intended to verify SQL",
+        "Using an in-memory database that behaves differently from production"
+      ]
+    },
+    {
+      "id": "spring-boot-advanced-01",
+      "level": "advanced",
+      "category": "Observability",
+      "question": "How would you make a Spring Boot service observable and actionable in production?",
+      "answer": "**Direct answer:** Expose health and readiness safely through Actuator, collect request and dependency metrics, use structured logs with correlation IDs, propagate distributed traces, and alert on user-facing latency, traffic, errors, and saturation.\n\n**In practice:** Give every alert an owner and runbook, protect management endpoints, and limit high-cardinality labels and sensitive log data.",
+      "explanation": "**Detailed explanation:** Metrics reveal trends and support alerts, logs explain discrete events, and traces connect work across service boundaries. Readiness should fail when an instance must stop receiving traffic, while liveness should identify only a process that cannot recover without restart.\n\n**Why it matters:** Incorrect health probes can turn a dependency slowdown into a restart storm, and unbounded labels can make telemetry expensive or unusable.",
+      "example": "A checkout alert fires on sustained error rate and p99 latency, links to a trace showing a slow payment dependency, and includes a runbook for degrading optional features.",
+      "keyPoints": [
+        "**Metrics, logs, and traces answer different questions.**",
+        "**Health probes must match recovery behavior.**",
+        "**Alerts should describe customer impact and action.**"
+      ],
+      "commonMistakes": [
+        "Exposing every Actuator endpoint publicly",
+        "Putting user IDs or request IDs in metric labels",
+        "Restarting healthy instances because a remote dependency is slow"
+      ]
+    },
+    {
+      "id": "spring-boot-advanced-02",
+      "level": "advanced",
+      "category": "Performance and Deployment",
+      "question": "How would you diagnose high latency in a Spring Boot service before scaling it?",
+      "answer": "**Direct answer:** Measure an end-to-end trace and separate queueing, application CPU, garbage collection, database work, connection-pool waiting, and downstream latency. Reproduce with representative load, fix the measured bottleneck, then size instances and concurrency from service-level objectives.\n\n**In practice:** Compare p50, p95, and p99 behavior and inspect saturation rather than relying only on average CPU.",
+      "explanation": "**Detailed explanation:** Adding replicas helps only when work can be distributed and downstream capacity is available. A small database pool can queue requests, an oversized pool can overwhelm the database, and blocking work can exhaust server threads even at low CPU. Profilers and query plans provide evidence for code and database changes.\n\n**Why it matters:** Blind scaling can increase cost and amplify pressure on the actual bottleneck.",
+      "example": "Tracing shows requests waiting for JDBC connections; a slow unindexed query is fixed first, then the pool is sized against database capacity and verified under load.",
+      "keyPoints": [
+        "**Decompose latency with measurements.**",
+        "**Check pools, threads, GC, queries, and dependencies.**",
+        "**Scale only after identifying the constrained resource.**"
+      ],
+      "commonMistakes": [
+        "Adding replicas before checking the database",
+        "Increasing every pool size without a capacity model",
+        "Optimizing from average latency alone"
+      ]
+    },
+    {
+      "id": "spring-boot-scenario-01",
+      "level": "scenario",
+      "category": "Transactions",
+      "question": "An order is saved but its confirmation message is sometimes never published. How would you make the workflow reliable?",
+      "answer": "**Direct answer:** Write the order and an outbox event in the same local database transaction. A separate publisher reads committed outbox rows, sends each event with a stable ID, and marks it published; consumers process messages idempotently because delivery can be repeated.\n\n**In practice:** Monitor unpublished age, retry temporary failures with backoff, and move poison events to an owned failure workflow.",
+      "explanation": "**Detailed explanation:** Saving to a database and publishing to a broker are two independent operations. Reversing their order merely changes whether failure creates a missing event or an event for missing data. The transactional outbox makes the business change and publication intent atomic without a distributed transaction.\n\n**Why it matters:** Exactly-once delivery is rarely available end to end, so stable IDs and idempotent side effects remain necessary.",
+      "example": "OrderService commits an order plus OrderCreated outbox row; a scheduled publisher sends it to Kafka, and the email consumer records the event ID before sending once.",
+      "flow": [
+        "Commit the business row and outbox row in one transaction",
+        "Read committed outbox rows from a background publisher",
+        "Publish with a stable event ID and retry safely",
+        "Deduplicate at consumers and monitor unpublished age"
+      ],
+      "keyPoints": [
+        "**The outbox closes the database-to-broker gap.**",
+        "**Consumers must be idempotent.**",
+        "**Retries and poison events need ownership.**"
+      ],
+      "commonMistakes": [
+        "Publishing before commit and assuming both operations succeed",
+        "Marking the outbox row sent before the broker confirms",
+        "Assuming the broker prevents duplicate business effects"
+      ]
+    },
+    {
+      "id": "spring-boot-scenario-02",
+      "level": "scenario",
+      "category": "Performance and Deployment",
+      "question": "A new Spring Boot deployment passes startup checks but produces errors during rolling release. How would you make deployment safer?",
+      "answer": "**Direct answer:** Separate startup, liveness, and readiness probes; keep new instances unready until dependencies and warm-up are complete; stop routing before shutdown; allow in-flight requests to drain; and use backward-compatible database and message changes. Roll out gradually with error and latency gates.\n\n**In practice:** Automate rollback, but investigate data or schema changes that cannot be reversed safely before relying on it.",
+      "explanation": "**Detailed explanation:** During a rolling deployment, old and new versions run together. An incompatible schema rename, message contract, cache entry, or API assumption can fail even when each version starts correctly. Expand-and-contract migrations let both versions operate during the transition.\n\n**Why it matters:** Readiness controls traffic, while liveness controls restarts; using one check for both can send requests too early or create restart loops.",
+      "example": "The release first adds a nullable database column, deploys code that reads both formats and writes the new one, backfills data, then removes the old column in a later release.",
+      "flow": [
+        "Deploy backward-compatible infrastructure and schema changes",
+        "Start instances and hold readiness through warm-up",
+        "Shift a small traffic percentage while watching SLOs",
+        "Drain old instances and contract obsolete data later"
+      ],
+      "keyPoints": [
+        "**Old and new versions must coexist safely.**",
+        "**Readiness and liveness serve different purposes.**",
+        "**Use gradual traffic and measured rollback gates.**"
+      ],
+      "commonMistakes": [
+        "Combining destructive schema changes with the first code rollout",
+        "Sending traffic as soon as the JVM process starts",
+        "Killing old instances without graceful request draining"
+      ]
+    }
+  ]
+}

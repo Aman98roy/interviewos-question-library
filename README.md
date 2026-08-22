@@ -4,7 +4,7 @@ Human-written interview questions for InterviewOS. No question generators or tem
 
 ## Catalog
 
-- Handwritten AWS, Microsoft Azure, and Google Cloud tracks
+- Handwritten AWS, Microsoft Azure, Google Cloud, React, and Spring Boot tracks
 - Question counts are read directly from each track file
 - Basic, intermediate, advanced, and scenario levels
 - Answers include explanations, real-world examples, and common mistakes
